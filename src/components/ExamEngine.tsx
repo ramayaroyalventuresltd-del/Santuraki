@@ -3,6 +3,7 @@ import { Question, ExamSession, User } from '../types';
 import { voiceReader } from '../utils/speech';
 import { VoiceReaderBar } from './VoiceReaderBar';
 import { saveExamSession } from '../utils/userStore';
+import { recordStudyQuestions } from '../utils/studyGoalStore';
 import { 
   Clock, 
   Flag, 
@@ -164,6 +165,8 @@ export const ExamEngine: React.FC<ExamEngineProps> = ({
     };
 
     saveExamSession(completedSession);
+    const answeredCount = Object.keys(answers).length || session.totalQuestions || questions.length;
+    recordStudyQuestions(session.userId, answeredCount);
     setSubmittedSession(completedSession);
     setIsSubmitted(true);
     setShowAdvisorAgent(true); // Automatically prompts candidate with Advisor Agent immediately after submission!

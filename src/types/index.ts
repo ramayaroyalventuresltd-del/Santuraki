@@ -122,3 +122,13 @@ export interface ScreenRecognitionInfo {
   isForced: boolean;
   forcedMode: ScreenDeviceType | 'auto';
 }
+
+export interface DailyStudyGoalData {
+  userId: string;
+  dailyTargetQuestions: number; // e.g. 20, 50, 100
+  lastActiveDate: string; // YYYY-MM-DD
+  lastCompletedDate: string; // YYYY-MM-DD
+  currentStreak: number; // in days
+  longestStreak: number; // in days
+  dailyHistory: Record<string, number>; // date "YYYY-MM-DD" -> count of questions answered
+}

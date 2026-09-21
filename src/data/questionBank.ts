@@ -2020,6 +2020,12 @@ class QuestionBankRepository {
       gradeLevelCategory: 'GL 14 - GL 16'
     }));
   }
+
+  public getAllQuestions(): Question[] {
+    const all: Question[] = [];
+    this.cache.forEach((qs) => all.push(...qs));
+    return all;
+  }
 }
 
 export const questionBank = new QuestionBankRepository();

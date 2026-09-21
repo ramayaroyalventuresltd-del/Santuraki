@@ -30,11 +30,15 @@ import {
   ChevronDown,
   Monitor,
   Tablet,
-  Smartphone
+  Smartphone,
+  Video
 } from 'lucide-react';
 import { useScreen } from '../context/ScreenRecognitionContext';
+import { useTheme } from '../context/ThemeContext';
 import { ScreenRecognitionBadge } from './ScreenRecognitionBadge';
 import { GraphicalProgressSection } from './GraphicalProgressSection';
+import { DailyStudyGoal } from './DailyStudyGoal';
+import { VideoUserManual } from './VideoUserManual';
 
 interface DashboardProps {
   user: User;
@@ -57,6 +61,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onNavigate,
   onReviewPastSession,
 }) => {
+  const { isNavyWhite } = useTheme();
+  const [isVideoManualModalOpen, setIsVideoManualModalOpen] = useState<boolean>(false);
   // Selected tab for Chapter-by-Chapter drill
   const [selectedDrillDomain, setSelectedDrillDomain] = useState<string>('psr');
   const [drillQuestionCount, setDrillQuestionCount] = useState<number>(10);
@@ -217,62 +223,126 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-900 text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
+    <div className={`min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8 transition-colors ${
+      isNavyWhite ? 'bg-[#f4f7fb] text-slate-800' : 'bg-[#07152b] text-slate-100'
+    }`}>
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Candidate Profile Header Card */}
-        <div className="bg-gradient-to-r from-slate-800 via-slate-800 to-slate-850 border border-slate-700 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+        <div className={`border rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden transition-all ${
+          isNavyWhite 
+            ? 'bg-white border-blue-100 text-slate-900 shadow-blue-950/5' 
+            : 'bg-gradient-to-r from-slate-800 via-slate-800 to-slate-850 border-slate-700 text-white'
+        }`}>
           {/* Subtle decoration accent */}
           <div className="absolute right-0 top-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold uppercase tracking-wider">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold uppercase tracking-wider">
+                <ShieldCheck className="w-4 h-4 text-emerald-500" />
                 FCTA Civil Service Examination Portal
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+              <h1 className={`text-2xl sm:text-3xl font-extrabold ${isNavyWhite ? 'text-[#07152b]' : 'text-white'}`}>
                 Welcome, {user.fullName}
               </h1>
-              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
-                <span className="font-mono bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-700 text-emerald-400 font-bold">
+              <div className="flex flex-wrap items-center gap-3 text-xs">
+                <span className={`font-mono px-2.5 py-1 rounded-lg border font-bold ${
+                  isNavyWhite 
+                    ? 'bg-blue-50 border-blue-200 text-blue-900' 
+                    : 'bg-slate-900/80 border-slate-700 text-emerald-400'
+                }`}>
                   ID: {user.username}
                 </span>
-                <span className="font-semibold bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-700 text-amber-400">
+                <span className={`font-semibold px-2.5 py-1 rounded-lg border ${
+                  isNavyWhite 
+                    ? 'bg-amber-50 border-amber-200 text-amber-800' 
+                    : 'bg-slate-900/80 border-slate-700 text-amber-400'
+                }`}>
                   {user.gradeLevel}
                 </span>
-                <span className="bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-700 truncate max-w-xs">
+                <span className={`px-2.5 py-1 rounded-lg border truncate max-w-xs ${
+                  isNavyWhite 
+                    ? 'bg-slate-100 border-slate-200 text-slate-700' 
+                    : 'bg-slate-900/80 border-slate-700 text-slate-300'
+                }`}>
                   {user.cadre}
                 </span>
-                <span className="bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-700 truncate max-w-xs text-slate-400">
+                <span className={`px-2.5 py-1 rounded-lg border truncate max-w-xs ${
+                  isNavyWhite 
+                    ? 'bg-slate-50 border-slate-200 text-slate-500' 
+                    : 'bg-slate-900/80 border-slate-700 text-slate-400'
+                }`}>
                   {user.sda}
                 </span>
               </div>
             </div>
 
             {/* Quick Stat Pill */}
-            <div className="flex items-center gap-4 bg-slate-900/80 border border-slate-700/80 p-4 rounded-2xl flex-shrink-0">
+            <div className={`flex items-center gap-4 p-4 rounded-2xl flex-shrink-0 border ${
+              isNavyWhite 
+                ? 'bg-blue-50/50 border-blue-100 text-slate-800' 
+                : 'bg-slate-900/80 border-slate-700/80 text-slate-200'
+            }`}>
               <div className="text-center px-2">
-                <span className="text-xl font-bold text-emerald-400 block">{totalExamsTaken}</span>
+                <span className={`text-xl font-bold block ${isNavyWhite ? 'text-blue-900' : 'text-emerald-400'}`}>
+                  {totalExamsTaken}
+                </span>
                 <span className="text-[11px] text-slate-400 uppercase">Tests Taken</span>
               </div>
-              <div className="h-8 w-[1px] bg-slate-700" />
+              <div className={`h-8 w-[1px] ${isNavyWhite ? 'bg-blue-200' : 'bg-slate-700'}`} />
               <div className="text-center px-2">
-                <span className="text-xl font-bold text-amber-400 block">{avgScore}%</span>
+                <span className="text-xl font-bold text-amber-500 block">{avgScore}%</span>
                 <span className="text-[11px] text-slate-400 uppercase">Average</span>
               </div>
-              <div className="h-8 w-[1px] bg-slate-700" />
+              <div className={`h-8 w-[1px] ${isNavyWhite ? 'bg-blue-200' : 'bg-slate-700'}`} />
               <div className="text-center px-2">
-                <span className="text-xl font-bold text-white block">{questionBank.getTotalQuestionsCount().toLocaleString()}</span>
-                <span className="text-[11px] text-emerald-400 uppercase font-semibold">Total Qs</span>
+                <span className={`text-xl font-bold block ${isNavyWhite ? 'text-slate-900' : 'text-white'}`}>
+                  {questionBank.getTotalQuestionsCount().toLocaleString()}
+                </span>
+                <span className={`text-[11px] uppercase font-semibold ${isNavyWhite ? 'text-blue-700' : 'text-emerald-400'}`}>
+                  Total Qs
+                </span>
               </div>
-              <div className="h-8 w-[1px] bg-slate-700 hidden sm:block" />
+              <div className={`h-8 w-[1px] hidden sm:block ${isNavyWhite ? 'bg-blue-200' : 'bg-slate-700'}`} />
               <div className="hidden sm:flex flex-col items-center justify-center px-2">
                 <ScreenRecognitionBadge compact />
                 <span className="text-[10px] text-slate-400 uppercase mt-1">Screen Mode</span>
               </div>
+              <div className={`h-8 w-[1px] hidden md:block ${isNavyWhite ? 'bg-blue-200' : 'bg-slate-700'}`} />
+              <button
+                id="btn-header-video-manual"
+                onClick={() => {
+                  const el = document.getElementById('video-user-manual-section');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth' });
+                  } else {
+                    setIsVideoManualModalOpen(true);
+                  }
+                }}
+                className={`hidden md:flex flex-col items-center justify-center px-2.5 py-1 rounded-xl transition-all cursor-pointer ${
+                  isNavyWhite 
+                    ? 'hover:bg-blue-100/70 text-blue-900' 
+                    : 'hover:bg-slate-800 text-blue-300'
+                }`}
+                title="Watch Video User Manual Guide"
+              >
+                <div className="flex items-center gap-1 font-bold text-xs">
+                  <Video className="w-3.5 h-3.5 text-blue-500" />
+                  <span>Video Guide</span>
+                </div>
+                <span className="text-[10px] text-slate-400 uppercase mt-0.5">8 Min Manual</span>
+              </button>
             </div>
           </div>
         </div>
+
+        {/* Daily Study Goal & Streak Tracker */}
+        <DailyStudyGoal
+          user={user}
+          onStartExam={onStartExam}
+          quickQuestionsPool={questionBank.getAllQuestions()}
+          onNavigateToPractice={() => onNavigate('learning')}
+        />
 
         {/* Graphical Progress Analytics Section (Recharts Visualization) */}
         <GraphicalProgressSection
@@ -280,6 +350,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
           sessions={pastSessions}
           onStartPracticeModule={handleStartModulePractice}
           onNavigate={onNavigate}
+        />
+
+        {/* Video User Manual Guide */}
+        <VideoUserManual
+          onStartExam={() => {
+            document.getElementById('interactive-exam-configurator')?.scrollIntoView({ behavior: 'smooth' });
+          }}
+          onNavigateToSection={(sectionId) => {
+            document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+          }}
         />
 
         {/* Interactive Dual-Column Examination Workstation */}
@@ -1306,6 +1386,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </table>
             </div>
           </div>
+        )}
+
+        {/* Fullscreen Video Manual Modal */}
+        {isVideoManualModalOpen && (
+          <VideoUserManual
+            isOpenModal={true}
+            onCloseModal={() => setIsVideoManualModalOpen(false)}
+            onStartExam={() => {
+              setIsVideoManualModalOpen(false);
+              document.getElementById('interactive-exam-configurator')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            onNavigateToSection={(id) => {
+              setIsVideoManualModalOpen(false);
+              document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+            }}
+          />
         )}
       </div>
     </div>
