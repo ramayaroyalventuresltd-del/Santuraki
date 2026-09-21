@@ -1,0 +1,268 @@
+import React, { useState, useMemo } from 'react';
+import { questionBank } from '../data/questionBank';
+import { FCTA_CADRES } from '../data/fctaData';
+import { voiceReader } from '../utils/speech';
+import { 
+  HelpCircle, 
+  Search, 
+  Eye, 
+  EyeOff, 
+  Volume2, 
+  CheckCircle2, 
+  Filter, 
+  BookOpen
+} from 'lucide-react';
+
+export const BrowseQuestions: React.FC = () => {
+  const [selectedCategory, setSelectedCategory] = useState<string>('psr');
+  const [selectedChapter, setSelectedChapter] = useState<number | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
+
+  // Category questions
+  const categoryQuestions = useMemo(() => {
+    return questionBank.getQuestionsByCategory(selectedCategory);
+  }, [selectedCategory]);
+
+  // Filtered by chapter & search
+  const filteredQuestions = useMemo(() => {
+    return categoryQuestions.filter((q) => {
+      const matchChapter = selectedChapter === 'all' || q.chapterNumber === selectedChapter;
+      const query = searchQuery.toLowerCase().trim();
+      const matchQuery = 
+        !query ||
+        q.questionText.toLowerCase().includes(query) ||
+        q.options.some((o) => o.toLowerCase().includes(query)) ||
+        q.explanation.toLowerCase().includes(query) ||
+        (q.referenceRule && q.referenceRule.toLowerCase().includes(query));
+      return matchChapter && matchQuery;
+    });
+  }, [categoryQuestions, selectedChapter, searchQuery]);
+
+  const toggleReveal = (id: string) => {
+    setRevealedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSpeak = (qText: string, options: string[]) => {
+    voiceReader.speakQuestion(1, qText, options);
+  };
+
+  return (
+    <div className="min-h-[calc(100vh-4rem)] bg-slate-900 text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
+              <HelpCircle className="w-3.5 h-3.5" />
+              Verified Repository Database
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+              Explore {questionBank.getTotalQuestionsCount().toLocaleString()} Examination Questions
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 mt-1">
+              Browse all {questionBank.getTotalQuestionsCount().toLocaleString()} curated questions across PSR (200), FR (200), PPA (200), FCT GK (200), and all {FCTA_CADRES.length} FCTA Cadres ({(FCTA_CADRES.length * 200).toLocaleString()}).
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold text-emerald-400 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
+              Showing {filteredQuestions.length} Questions
+            </span>
+          </div>
+        </div>
+
+        {/* Filter Controls Bar */}
+        <div className="p-5 rounded-2xl bg-slate-800/90 border border-slate-700 space-y-4 shadow-lg">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Category Domain */}
+            <div>
+              <label htmlFor="browse-category" className="block text-xs font-semibold text-slate-400 uppercase mb-1">
+                Domain / Cadre:
+              </label>
+              <select
+                id="browse-category"
+                value={selectedCategory}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  setSelectedChapter('all');
+                }}
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+              >
+                <optgroup label="Regulatory Core (200 Qs Each)">
+                  <option value="psr">Public Service Rules (PSR - 200 Qs)</option>
+                  <option value="fr">Financial Regulations (FR - 200 Qs)</option>
+                  <option value="ppa">Public Procurement Act (PPA - 200 Qs)</option>
+                  <option value="fct_gk">FCT General Knowledge (200 Qs)</option>
+                </optgroup>
+                <optgroup label={`FCTA Professional Cadres (${FCTA_CADRES.length} Cadres - 200 Qs Each)`}>
+                  {FCTA_CADRES.map((cadre) => (
+                    <option key={cadre.id} value={cadre.id}>
+                      {cadre.name} (200 Qs)
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
+
+            {/* Chapter Filter */}
+            <div>
+              <label htmlFor="browse-chapter" className="block text-xs font-semibold text-slate-400 uppercase mb-1">
+                Chapter Filter (1-20):
+              </label>
+              <select
+                id="browse-chapter"
+                value={selectedChapter}
+                onChange={(e) => setSelectedChapter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="all">All 20 Chapters (200 Qs)</option>
+                {Array.from({ length: 20 }, (_, i) => i + 1).map((chNum) => (
+                  <option key={chNum} value={chNum}>
+                    Chapter {chNum} (10 Questions)
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Keyword Search */}
+            <div className="sm:col-span-2">
+              <label htmlFor="browse-search" className="block text-xs font-semibold text-slate-400 uppercase mb-1">
+                Search Question Keywords / Rules:
+              </label>
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  id="browse-search"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="e.g. query, misconduct, procurement, civil service rule..."
+                  className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Questions Cards List */}
+        <div className="space-y-4">
+          {filteredQuestions.map((q, idx) => {
+            const isRevealed = revealedIds.has(q.id);
+
+            return (
+              <div
+                key={q.id}
+                className="p-5 sm:p-6 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-4 transition-all"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-slate-900 text-emerald-400 border border-slate-700">
+                      Q{idx + 1}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-300">
+                      {q.categoryLabel} • Chapter {q.chapterNumber}: {q.chapterTitle}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Read Out Button */}
+                    <button
+                      onClick={() => handleSpeak(q.questionText, q.options)}
+                      className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-700 text-slate-300 text-xs flex items-center gap-1 border border-slate-700"
+                      title="Read question out loud"
+                    >
+                      <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="hidden sm:inline">Read</span>
+                    </button>
+
+                    {/* Reveal Answer Button */}
+                    <button
+                      onClick={() => toggleReveal(q.id)}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                        isRevealed
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
+                      }`}
+                    >
+                      {isRevealed ? (
+                        <>
+                          <EyeOff className="w-3.5 h-3.5" />
+                          <span>Hide Answer</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Show Answer</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-sm sm:text-base font-semibold text-white">
+                  {q.questionText}
+                </p>
+
+                {/* Options List */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
+                  {q.options.map((opt, optIdx) => {
+                    const isCorrect = q.correctOptionIndex === optIdx;
+                    const letter = String.fromCharCode(65 + optIdx);
+
+                    return (
+                      <div
+                        key={optIdx}
+                        className={`p-3 rounded-xl border flex items-center justify-between ${
+                          isRevealed && isCorrect
+                            ? 'bg-emerald-950/60 border-emerald-500 text-emerald-200 font-semibold'
+                            : 'bg-slate-900/60 border-slate-700/60 text-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-6 h-6 rounded-full border border-current flex items-center justify-center font-bold text-xs flex-shrink-0">
+                            {letter}
+                          </span>
+                          <span>{opt}</span>
+                        </div>
+                        {isRevealed && isCorrect && (
+                          <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-400 bg-emerald-900/80 px-2 py-0.5 rounded">
+                            Correct
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Explanation (if revealed) */}
+                {isRevealed && (
+                  <div className="p-4 rounded-xl bg-slate-900 border border-slate-700/80 text-xs space-y-1">
+                    <div className="flex items-center justify-between">
+                      <strong className="text-emerald-400 font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="w-4 h-4" /> Civil Service Explanation:
+                      </strong>
+                      {q.referenceRule && (
+                        <span className="font-mono text-[11px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">
+                          {q.referenceRule}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-slate-300 leading-relaxed pt-1">
+                      {q.explanation}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+:root {
+  --navy-deep: #07152b;
+  --navy-primary: #1e3a8a;
+  --navy-accent: #2563eb;
+  --navy-ice: #eff6ff;
+  --pure-white: #ffffff;
+}
+
+/* Custom Scrollbar for Navy Theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.theme-midnight-navy ::-webkit-scrollbar-track {
+  background: #07152b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+
+.theme-midnight-navy ::-webkit-scrollbar-thumb {
+  background: #1e3a8a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #1e3a8a;
+}
+

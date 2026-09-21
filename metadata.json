@@ -1,0 +1,6 @@
+{
+  "name": "thesanturakiyauri cbtportal",
+  "description": "Comprehensive FCTA Staff CBT Mock Examination and Study Portal with 3,600 questions covering PSR, FR, PPA, FCT General Knowledge, 14 Professional Cadres, Post-Exam Advisory Agent, Grade-Level Calibrated Level 3 Difficulty, Voice Reader, and Graphical Progress Analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
