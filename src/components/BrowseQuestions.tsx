@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { questionBank } from '../data/questionBank';
 import { FCTA_CADRES } from '../data/fctaData';
 import { voiceReader } from '../utils/speech';
+import { useTheme } from '../context/ThemeContext';
 import { 
   HelpCircle, 
   Search, 
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 
 export const BrowseQuestions: React.FC = () => {
+  const { isNavyWhite } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState<string>('psr');
   const [selectedChapter, setSelectedChapter] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -53,19 +55,23 @@ export const BrowseQuestions: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-900 text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
+    <div className={`min-h-[calc(100vh-4rem)] py-4 px-3 sm:py-8 sm:px-6 lg:px-8 transition-colors ${
+      isNavyWhite ? 'bg-[#f4f7fb] text-slate-800' : 'bg-[#07152b] text-slate-100'
+    }`}>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+        <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6 ${
+          isNavyWhite ? 'border-blue-200' : 'border-slate-800'
+        }`}>
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
               <HelpCircle className="w-3.5 h-3.5" />
               Verified Repository Database
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+            <h1 className={`text-2xl sm:text-3xl font-extrabold ${isNavyWhite ? 'text-[#07152b]' : 'text-white'}`}>
               Explore {questionBank.getTotalQuestionsCount().toLocaleString()} Examination Questions
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1">
+            <p className={`text-xs sm:text-sm mt-1 ${isNavyWhite ? 'text-slate-600' : 'text-slate-300'}`}>
               Browse all {questionBank.getTotalQuestionsCount().toLocaleString()} curated questions across PSR (200), FR (200), PPA (200), FCT GK (200), and all {FCTA_CADRES.length} FCTA Cadres ({(FCTA_CADRES.length * 200).toLocaleString()}).
             </p>
           </div>

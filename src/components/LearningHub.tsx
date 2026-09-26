@@ -18,12 +18,14 @@ import {
   ChevronRight,
   BookMarked
 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 interface LearningHubProps {
   onStartChapterPractice: (subject: 'psr' | 'fr' | 'ppa', chapterNumber: number, title: string) => void;
 }
 
 export const LearningHub: React.FC<LearningHubProps> = ({ onStartChapterPractice }) => {
+  const { isNavyWhite } = useTheme();
   const [activeSubject, setActiveSubject] = useState<'all' | 'psr' | 'fr' | 'ppa'>('psr');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedModuleId, setSelectedModuleId] = useState<string>(LEARNING_MODULES[0].id);
@@ -58,19 +60,23 @@ export const LearningHub: React.FC<LearningHubProps> = ({ onStartChapterPractice
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-900 text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className={`min-h-[calc(100vh-4rem)] py-4 px-3 sm:py-8 sm:px-6 lg:px-8 transition-colors ${
+      isNavyWhite ? 'bg-[#f4f7fb] text-slate-800' : 'bg-[#07152b] text-slate-100'
+    }`}>
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
         {/* Header Hero */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+        <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6 ${
+          isNavyWhite ? 'border-blue-200' : 'border-slate-800'
+        }`}>
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
               <BookOpen className="w-3.5 h-3.5" />
               Comprehensive Civil Service Learning Center
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-serif">
-              Learning Hub: <span className="text-emerald-400">PPA, FR & PSR</span>
+            <h1 className={`text-2xl sm:text-3xl font-extrabold font-serif ${isNavyWhite ? 'text-[#07152b]' : 'text-white'}`}>
+              Learning Hub: <span className="text-emerald-500">PPA, FR & PSR</span>
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
+            <p className={`text-xs sm:text-sm mt-1 max-w-2xl ${isNavyWhite ? 'text-slate-600' : 'text-slate-300'}`}>
               Master the foundational legal and regulatory statutes of the Nigerian Public Service. Access chapter notes, key provisions, reference rules, and launch 10-question practice drills.
             </p>
           </div>

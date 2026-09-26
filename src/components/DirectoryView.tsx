@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FCTA_SDAS, GRADE_LEVELS, FCTA_CADRES } from '../data/fctaData';
+import { useTheme } from '../context/ThemeContext';
 import { 
   Building2, 
   Layers, 
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react';
 
 export const DirectoryView: React.FC = () => {
+  const { isNavyWhite } = useTheme();
   const [activeTab, setActiveTab] = useState<'sdas' | 'grades' | 'cadres'>('sdas');
   const [sdaSearch, setSdaSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -29,29 +31,33 @@ export const DirectoryView: React.FC = () => {
   });
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-900 text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
+    <div className={`min-h-[calc(100vh-4rem)] py-4 px-3 sm:py-8 sm:px-6 lg:px-8 transition-colors ${
+      isNavyWhite ? 'bg-[#f4f7fb] text-slate-800' : 'bg-[#07152b] text-slate-100'
+    }`}>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="border-b border-slate-800 pb-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
+        <div className={`border-b pb-6 ${isNavyWhite ? 'border-blue-200' : 'border-slate-800'}`}>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
             <ShieldCheck className="w-3.5 h-3.5" />
             Official Administrative Structures
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+          <h1 className={`text-2xl sm:text-3xl font-extrabold ${isNavyWhite ? 'text-[#07152b]' : 'text-white'}`}>
             FCTA Secretariat, Department & Agency (SDA) Directory
           </h1>
-          <p className="text-xs sm:text-sm text-slate-300 mt-1">
+          <p className={`text-xs sm:text-sm mt-1 ${isNavyWhite ? 'text-slate-600' : 'text-slate-300'}`}>
             Complete institutional reference of all Mandate Secretariats, Common Services Departments, Agencies, Area Councils, and Public Service Grade Levels (GL 07 - GL 16).
           </p>
         </div>
 
         {/* View Selection Tabs */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
+        <div className={`flex flex-wrap items-center gap-2 border-b pb-3 ${isNavyWhite ? 'border-blue-200' : 'border-slate-800'}`}>
           <button
             onClick={() => setActiveTab('sdas')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${
               activeTab === 'sdas'
-                ? 'bg-emerald-600 text-white shadow-md'
+                ? 'bg-blue-700 text-white shadow-md'
+                : isNavyWhite
+                ? 'bg-white text-slate-700 hover:bg-blue-50 border border-blue-200'
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >
@@ -61,9 +67,11 @@ export const DirectoryView: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('grades')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${
               activeTab === 'grades'
-                ? 'bg-emerald-600 text-white shadow-md'
+                ? 'bg-blue-700 text-white shadow-md'
+                : isNavyWhite
+                ? 'bg-white text-slate-700 hover:bg-blue-50 border border-blue-200'
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >
@@ -73,9 +81,11 @@ export const DirectoryView: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('cadres')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${
               activeTab === 'cadres'
-                ? 'bg-emerald-600 text-white shadow-md'
+                ? 'bg-blue-700 text-white shadow-md'
+                : isNavyWhite
+                ? 'bg-white text-slate-700 hover:bg-blue-50 border border-blue-200'
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >

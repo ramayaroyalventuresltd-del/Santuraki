@@ -157,7 +157,7 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
         </div>
 
         {/* Streak Metrics Highlights */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3">
           {/* Active Streak */}
           <div 
             id="streak-counter-badge"
@@ -336,7 +336,7 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
             </span>
           </div>
 
-          <div className="grid grid-cols-7 gap-1.5 text-center">
+          <div className="grid grid-cols-7 gap-1 sm:gap-1.5 text-center">
             {recent7Days.map((day) => {
               const met = day.questionsAnswered >= target && target > 0;
               const hasProgress = day.questionsAnswered > 0;
@@ -344,7 +344,7 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
               return (
                 <div 
                   key={day.dateStr}
-                  className={`p-2 rounded-xl flex flex-col items-center justify-between transition-all ${
+                  className={`p-1 sm:p-2 rounded-xl flex flex-col items-center justify-between transition-all min-w-0 ${
                     day.isToday
                       ? isNavyWhite 
                         ? 'bg-white border-2 border-blue-600 shadow-sm' 

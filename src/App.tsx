@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, ExamSession, Question } from './types';
-import { getCurrentUser, setCurrentUser } from './utils/userStore';
+import { getCurrentUser, setCurrentUser, getUserAnsweredQuestionIds } from './utils/userStore';
 import { questionBank } from './data/questionBank';
 import { FCTA_CADRES } from './data/fctaData';
 import { getDifficultyTier } from './data/difficultyLevels';
@@ -11,6 +11,7 @@ import { ExamEngine } from './components/ExamEngine';
 import { LearningHub } from './components/LearningHub';
 import { BrowseQuestions } from './components/BrowseQuestions';
 import { DirectoryView } from './components/DirectoryView';
+import { PageSettingsBar } from './components/PageSettingsBar';
 import { ScreenRecognitionProvider, useScreen } from './context/ScreenRecognitionContext';
 import { ScreenRecognitionToast } from './components/ScreenRecognitionToast';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -19,6 +20,7 @@ function PortalRoot() {
   const [currentUser, setUser] = useState<User | null>(() => getCurrentUser());
   const [currentView, setCurrentView] = useState<'dashboard' | 'exam' | 'learning' | 'browse' | 'directory'>('dashboard');
   const [activeSession, setActiveSession] = useState<ExamSession | null>(null);
+  const [pageFitMode, setPageFitMode] = useState<'standard' | 'full'>('standard');
   const { deviceType, isForced, forcedMode, width, setForcedMode } = useScreen();
   const { isNavyWhite } = useTheme();
 
@@ -101,10 +103,15 @@ function PortalRoot() {
     setCurrentView('exam');
   };
 
-  // Generate a fresh exam session calibrated at Level 3 Difficulty (Directorate Standard: GL 14 - GL 16)
-  const handleGenerateNewExamSession = (session: ExamSession, difficultyLevel: number = 3) => {
+  // Agent Reshuffle: Generate a fresh exam session with questions user has NEVER answered before and make exam more difficult
+  const handleGenerateNewExamSession = (session: ExamSession, requestedDifficulty?: number) => {
     const totalQ = session.totalQuestions || session.questions.length || 60;
-    const previousIds = session.questions.map((q) => q.id);
+    
+    // Collect all questions user has ever answered across all previous sessions + this session
+    const answeredIdsSet = getUserAnsweredQuestionIds(currentUser?.id || 'candidate_user');
+    if (session.questions) {
+      session.questions.forEach((q) => answeredIdsSet.add(q.id));
+    }
 
     // Match cadre id from user cadre title or id
     const matchedCadre = FCTA_CADRES.find(
@@ -112,33 +119,41 @@ function PortalRoot() {
     );
     const cadreId = matchedCadre ? matchedCadre.id : 'cadre_admin';
 
-    // Fetch fresh Level 3 questions excluding the previous questions
-    const newQuestions = questionBank.generateLevel3Questions({
+    const currentDiff = session.difficultyLevel || 2;
+    const targetDiff = requestedDifficulty ?? (currentDiff < 3 ? currentDiff + 1 : 3);
+
+    // Call Agent Reshuffle generator: 100% unseen questions, higher difficulty tier
+    const reshuffleResult = questionBank.generateReshuffledExamQuestions({
       category: session.category,
       cadreId,
       count: totalQ,
-      excludeIds: previousIds,
+      answeredQuestionIds: answeredIdsSet,
+      currentDifficulty: currentDiff,
+      targetDifficulty: targetDiff,
+      chapterNumber: session.chapterNumber,
     });
 
-    const diffTier = getDifficultyTier(difficultyLevel);
-
-    const cleanBaseTitle = session.title.replace(/\[Level \d.*?\]/g, '').trim();
+    const diffTier = getDifficultyTier(reshuffleResult.assignedDifficulty);
+    const cleanBaseTitle = session.title
+      .replace(/\[Agent Reshuffle:.*?\]/g, '')
+      .replace(/\[Level \d.*?\]/g, '')
+      .trim();
 
     const newSession: ExamSession = {
       id: `session_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       userId: currentUser?.id || 'candidate_user',
-      title: `${cleanBaseTitle} [${diffTier.badgeLabel}]`,
+      title: `${cleanBaseTitle} [Agent Reshuffle: ${diffTier.badgeLabel}]`,
       category: session.category,
       chapterNumber: session.chapterNumber,
-      totalQuestions: newQuestions.length,
+      totalQuestions: reshuffleResult.questions.length,
       timeLimitMinutes: session.timeLimitMinutes,
-      questions: newQuestions,
+      questions: reshuffleResult.questions,
       userAnswers: {},
       flaggedQuestions: [],
       startedAt: Date.now(),
       status: 'in_progress',
       mode: session.mode,
-      difficultyLevel,
+      difficultyLevel: reshuffleResult.assignedDifficulty,
       difficultyLabel: diffTier.badgeLabel,
     };
 
@@ -153,10 +168,20 @@ function PortalRoot() {
   };
 
   const simulationContainerClass = isForced && forcedMode === 'mobile'
-    ? `max-w-md mx-auto shadow-2xl border-x min-h-screen ${isNavyWhite ? 'bg-white border-blue-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-100'}`
+    ? `w-full max-w-md mx-auto shadow-2xl border-x min-h-screen flex flex-col font-sans overflow-x-hidden ${
+        isNavyWhite ? 'bg-white border-blue-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-100'
+      }`
     : isForced && forcedMode === 'tablet'
-    ? `max-w-3xl mx-auto shadow-2xl border-x min-h-screen ${isNavyWhite ? 'bg-white border-blue-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-100'}`
-    : `min-h-screen flex flex-col font-sans ${isNavyWhite ? 'bg-[#f4f7fb] text-slate-800' : 'bg-[#07152b] text-slate-100'}`;
+    ? `w-full max-w-3xl mx-auto shadow-2xl border-x min-h-screen flex flex-col font-sans overflow-x-hidden ${
+        isNavyWhite ? 'bg-white border-blue-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-100'
+      }`
+    : isForced && forcedMode === 'desktop'
+    ? `w-full ${pageFitMode === 'standard' ? 'max-w-7xl' : 'max-w-full'} mx-auto shadow-2xl border-x min-h-screen flex flex-col font-sans overflow-x-hidden ${
+        isNavyWhite ? 'bg-[#f4f7fb] border-blue-200 text-slate-800' : 'bg-[#07152b] border-blue-900 text-slate-100'
+      }`
+    : `w-full ${pageFitMode === 'standard' ? 'max-w-7xl' : 'max-w-full'} mx-auto min-h-screen flex flex-col font-sans overflow-x-hidden ${
+        isNavyWhite ? 'bg-[#f4f7fb] text-slate-800' : 'bg-[#07152b] text-slate-100'
+      }`;
 
   const bgThemeClass = isNavyWhite ? 'bg-[#f4f7fb] text-slate-900' : 'bg-[#07152b] text-slate-100';
   const forcedBgClass = isNavyWhite ? 'bg-slate-200' : 'bg-slate-950';
@@ -164,15 +189,11 @@ function PortalRoot() {
   // If user is not logged in, show the comprehensive Login and Registration Portal
   if (!currentUser) {
     return (
-      <div className={isForced ? `${forcedBgClass} min-h-screen py-4` : `min-h-screen ${bgThemeClass}`}>
-        {isForced && (
-          <div className="max-w-4xl mx-auto mb-2 px-4 py-1 rounded-lg bg-blue-900/30 border border-blue-600/40 text-center text-xs text-blue-300 flex items-center justify-between">
-            <span>Simulated Screen: <strong className="capitalize">{forcedMode}</strong> ({forcedMode === 'mobile' ? '390px' : '768px'})</span>
-            <button onClick={() => setForcedMode('auto')} className="underline text-blue-200 hover:text-white font-bold cursor-pointer">
-              Restore Hardware Auto-Detection
-            </button>
-          </div>
-        )}
+      <div className={isForced ? `${forcedBgClass} min-h-screen pb-6` : `min-h-screen ${bgThemeClass}`}>
+        <PageSettingsBar 
+          pageFitMode={pageFitMode} 
+          onTogglePageFit={() => setPageFitMode(m => m === 'standard' ? 'full' : 'standard')} 
+        />
         <div className={simulationContainerClass}>
           <Navbar
             currentUser={null}
@@ -205,15 +226,11 @@ function PortalRoot() {
   // If user is in an active exam
   if (currentView === 'exam' && activeSession) {
     return (
-      <div className={isForced ? `${forcedBgClass} min-h-screen py-4` : `min-h-screen ${bgThemeClass}`}>
-        {isForced && (
-          <div className="max-w-4xl mx-auto mb-2 px-4 py-1 rounded-lg bg-blue-900/30 border border-blue-600/40 text-center text-xs text-blue-300 flex items-center justify-between">
-            <span>Simulated CBT View: <strong className="capitalize">{forcedMode}</strong></span>
-            <button onClick={() => setForcedMode('auto')} className="underline text-blue-200 hover:text-white font-bold cursor-pointer">
-              Restore Hardware Auto-Detection
-            </button>
-          </div>
-        )}
+      <div className={isForced ? `${forcedBgClass} min-h-screen pb-6` : `min-h-screen ${bgThemeClass}`}>
+        <PageSettingsBar 
+          pageFitMode={pageFitMode} 
+          onTogglePageFit={() => setPageFitMode(m => m === 'standard' ? 'full' : 'standard')} 
+        />
         <div className={simulationContainerClass}>
           <ExamEngine
             user={currentUser}
@@ -232,15 +249,11 @@ function PortalRoot() {
 
   // Normal Portal Views (with Navbar and Footer)
   return (
-    <div className={isForced ? `${forcedBgClass} min-h-screen py-4` : `min-h-screen ${bgThemeClass}`}>
-      {isForced && (
-        <div className="max-w-4xl mx-auto mb-2 px-4 py-1 rounded-lg bg-blue-900/30 border border-blue-600/40 text-center text-xs text-blue-300 flex items-center justify-between">
-          <span>Simulated Screen View: <strong className="capitalize">{forcedMode}</strong></span>
-          <button onClick={() => setForcedMode('auto')} className="underline text-blue-200 hover:text-white font-bold cursor-pointer">
-            Restore Hardware Auto-Detection
-          </button>
-        </div>
-      )}
+    <div className={isForced ? `${forcedBgClass} min-h-screen pb-6` : `min-h-screen ${bgThemeClass}`}>
+      <PageSettingsBar 
+        pageFitMode={pageFitMode} 
+        onTogglePageFit={() => setPageFitMode(m => m === 'standard' ? 'full' : 'standard')} 
+      />
       <div className={simulationContainerClass}>
         <Navbar
           currentUser={currentUser}

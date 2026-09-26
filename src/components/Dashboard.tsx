@@ -3,7 +3,7 @@ import { User, ExamSession } from '../types';
 import { questionBank } from '../data/questionBank';
 import { FCTA_CADRES } from '../data/fctaData';
 import { PSR_CHAPTERS, FR_CHAPTERS, PPA_CHAPTERS, FCT_GK_CHAPTERS, getCadreChapters } from '../data/chaptersCatalog';
-import { getUserExamHistory } from '../utils/userStore';
+import { getUserExamHistory, getUserAnsweredCount } from '../utils/userStore';
 import { 
   GraduationCap, 
   Play, 
@@ -31,7 +31,8 @@ import {
   Monitor,
   Tablet,
   Smartphone,
-  Video
+  Video,
+  Bot
 } from 'lucide-react';
 import { useScreen } from '../context/ScreenRecognitionContext';
 import { useTheme } from '../context/ThemeContext';
@@ -157,6 +158,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // User past history
   const pastSessions = getUserExamHistory(user.id);
+  const answeredCountAll = getUserAnsweredCount(user.id);
   const totalExamsTaken = pastSessions.length;
   const avgScore = totalExamsTaken > 0 
     ? Math.round(pastSessions.reduce((acc, s) => acc + (s.percentage || 0), 0) / totalExamsTaken)
@@ -223,12 +225,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   return (
-    <div className={`min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8 transition-colors ${
+    <div className={`min-h-[calc(100vh-4rem)] py-4 px-3 sm:py-8 sm:px-6 lg:px-8 transition-colors ${
       isNavyWhite ? 'bg-[#f4f7fb] text-slate-800' : 'bg-[#07152b] text-slate-100'
     }`}>
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
         {/* Candidate Profile Header Card */}
-        <div className={`border rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden transition-all ${
+        <div className={`border rounded-3xl p-5 sm:p-8 shadow-2xl relative overflow-hidden transition-all ${
           isNavyWhite 
             ? 'bg-white border-blue-100 text-slate-900 shadow-blue-950/5' 
             : 'bg-gradient-to-r from-slate-800 via-slate-800 to-slate-850 border-slate-700 text-white'
@@ -236,16 +238,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {/* Subtle decoration accent */}
           <div className="absolute right-0 top-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="space-y-2">
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
+            <div className="space-y-2 min-w-0">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold uppercase tracking-wider">
                 <ShieldCheck className="w-4 h-4 text-emerald-500" />
                 FCTA Civil Service Examination Portal
               </div>
-              <h1 className={`text-2xl sm:text-3xl font-extrabold ${isNavyWhite ? 'text-[#07152b]' : 'text-white'}`}>
+              <h1 className={`text-xl sm:text-3xl font-extrabold truncate ${isNavyWhite ? 'text-[#07152b]' : 'text-white'}`}>
                 Welcome, {user.fullName}
               </h1>
-              <div className="flex flex-wrap items-center gap-3 text-xs">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
                 <span className={`font-mono px-2.5 py-1 rounded-lg border font-bold ${
                   isNavyWhite 
                     ? 'bg-blue-50 border-blue-200 text-blue-900' 
@@ -260,46 +262,57 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 }`}>
                   {user.gradeLevel}
                 </span>
-                <span className={`px-2.5 py-1 rounded-lg border truncate max-w-xs ${
+                <span className={`px-2.5 py-1 rounded-lg border truncate max-w-[200px] sm:max-w-xs ${
                   isNavyWhite 
                     ? 'bg-slate-100 border-slate-200 text-slate-700' 
                     : 'bg-slate-900/80 border-slate-700 text-slate-300'
                 }`}>
                   {user.cadre}
                 </span>
-                <span className={`px-2.5 py-1 rounded-lg border truncate max-w-xs ${
+                <span className={`px-2.5 py-1 rounded-lg border truncate max-w-[200px] sm:max-w-xs ${
                   isNavyWhite 
                     ? 'bg-slate-50 border-slate-200 text-slate-500' 
                     : 'bg-slate-900/80 border-slate-700 text-slate-400'
                 }`}>
                   {user.sda}
                 </span>
+                <button
+                  onClick={() => setIsVideoManualModalOpen(true)}
+                  className={`md:hidden px-2.5 py-1 rounded-lg border flex items-center gap-1.5 font-semibold text-xs cursor-pointer ${
+                    isNavyWhite
+                      ? 'bg-blue-100 text-blue-900 border-blue-300'
+                      : 'bg-blue-950/80 text-blue-300 border-blue-700'
+                  }`}
+                >
+                  <Video className="w-3.5 h-3.5 text-blue-500" />
+                  <span>Video Manual</span>
+                </button>
               </div>
             </div>
 
             {/* Quick Stat Pill */}
-            <div className={`flex items-center gap-4 p-4 rounded-2xl flex-shrink-0 border ${
+            <div className={`grid grid-cols-3 sm:flex sm:items-center gap-2 sm:gap-4 p-3 sm:p-4 rounded-2xl border w-full lg:w-auto ${
               isNavyWhite 
                 ? 'bg-blue-50/50 border-blue-100 text-slate-800' 
                 : 'bg-slate-900/80 border-slate-700/80 text-slate-200'
             }`}>
-              <div className="text-center px-2">
-                <span className={`text-xl font-bold block ${isNavyWhite ? 'text-blue-900' : 'text-emerald-400'}`}>
+              <div className="text-center px-1 sm:px-2">
+                <span className={`text-lg sm:text-xl font-bold block ${isNavyWhite ? 'text-blue-900' : 'text-emerald-400'}`}>
                   {totalExamsTaken}
                 </span>
-                <span className="text-[11px] text-slate-400 uppercase">Tests Taken</span>
+                <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase">Tests Taken</span>
               </div>
-              <div className={`h-8 w-[1px] ${isNavyWhite ? 'bg-blue-200' : 'bg-slate-700'}`} />
-              <div className="text-center px-2">
-                <span className="text-xl font-bold text-amber-500 block">{avgScore}%</span>
-                <span className="text-[11px] text-slate-400 uppercase">Average</span>
+              <div className={`hidden sm:block h-8 w-[1px] ${isNavyWhite ? 'bg-blue-200' : 'bg-slate-700'}`} />
+              <div className="text-center px-1 sm:px-2">
+                <span className="text-lg sm:text-xl font-bold text-amber-500 block">{avgScore}%</span>
+                <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase">Average</span>
               </div>
-              <div className={`h-8 w-[1px] ${isNavyWhite ? 'bg-blue-200' : 'bg-slate-700'}`} />
-              <div className="text-center px-2">
-                <span className={`text-xl font-bold block ${isNavyWhite ? 'text-slate-900' : 'text-white'}`}>
+              <div className={`hidden sm:block h-8 w-[1px] ${isNavyWhite ? 'bg-blue-200' : 'bg-slate-700'}`} />
+              <div className="text-center px-1 sm:px-2">
+                <span className={`text-lg sm:text-xl font-bold block ${isNavyWhite ? 'text-slate-900' : 'text-white'}`}>
                   {questionBank.getTotalQuestionsCount().toLocaleString()}
                 </span>
-                <span className={`text-[11px] uppercase font-semibold ${isNavyWhite ? 'text-blue-700' : 'text-emerald-400'}`}>
+                <span className={`text-[10px] sm:text-[11px] uppercase font-semibold ${isNavyWhite ? 'text-blue-700' : 'text-emerald-400'}`}>
                   Total Qs
                 </span>
               </div>
@@ -332,6 +345,46 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
                 <span className="text-[10px] text-slate-400 uppercase mt-0.5">8 Min Manual</span>
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Agent Reshuffle Readiness Strip */}
+        <div className={`p-4 sm:p-5 rounded-3xl border transition-all ${
+          isNavyWhite 
+            ? 'bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border-emerald-200 text-slate-800' 
+            : 'bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border-emerald-500/40 text-slate-200'
+        }`}>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-700 flex items-center justify-center text-white shadow-lg shrink-0">
+                <Bot className="w-5 h-5 animate-pulse" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-sm text-white">Agent Reshuffle Enabled</h4>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold uppercase border border-emerald-500/30">
+                    Adaptive Test Evaluator
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400">
+                  After submitting your test, Agent Reshuffle asks if you want to rewrite or generate 100% unseen questions at escalated difficulty.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 text-xs font-mono self-start md:self-auto bg-slate-950/60 px-3.5 py-2 rounded-xl border border-slate-800">
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase">Attempted & Excluded</span>
+                <span className="font-bold text-emerald-400">{answeredCountAll} Qs</span>
+              </div>
+              <div className="h-6 w-[1px] bg-slate-800" />
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase">Fresh Unseen Bank</span>
+                <span className="font-bold text-teal-300">
+                  {Math.max(0, questionBank.getTotalQuestionsCount() - answeredCountAll).toLocaleString()} Qs
+                </span>
+              </div>
             </div>
           </div>
         </div>

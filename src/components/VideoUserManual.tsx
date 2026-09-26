@@ -598,7 +598,7 @@ export const VideoUserManual: React.FC<VideoUserManualProps> = ({
               </div>
 
               {/* Action Buttons Row */}
-              <div className="flex items-center justify-between text-xs text-white">
+              <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 text-xs text-white">
                 <div className="flex items-center gap-2">
                   <button
                     id="btn-player-play-pause"

@@ -122,12 +122,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   });
 
   return (
-    <div className={`min-h-[calc(100vh-4rem)] py-8 px-4 sm:px-6 lg:px-8 transition-colors ${
+    <div className={`min-h-[calc(100vh-4rem)] py-4 px-3 sm:py-8 sm:px-6 lg:px-8 transition-colors ${
       isNavyWhite 
         ? 'bg-[#f4f7fb] text-slate-800' 
         : 'bg-gradient-to-b from-[#07152b] via-[#0b1e3b] to-[#07152b] text-slate-100'
     }`}>
-      <div className="max-w-6xl mx-auto space-y-8">
+      <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8">
         {/* Banner Section */}
         <div className="text-center space-y-3">
           <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold tracking-wide uppercase shadow-xs ${
