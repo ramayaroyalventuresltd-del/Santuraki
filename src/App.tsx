@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { User, ExamSession, Question } from './types';
-import { getCurrentUser, setCurrentUser } from './utils/userStore';
+import { getCurrentUser, setCurrentUser, saveExamPreferences, DEFAULT_EXAM_PREFS } from './utils/userStore';
 import { questionBank } from './data/questionBank';
 import { FCTA_CADRES } from './data/fctaData';
 import { getDifficultyTier } from './data/difficultyLevels';
+import { voiceReader } from './utils/speech';
 import { Navbar } from './components/Navbar';
 import { LoginPage } from './components/LoginPage';
 import { Dashboard } from './components/Dashboard';
@@ -12,6 +13,7 @@ import { LearningHub } from './components/LearningHub';
 import { BrowseQuestions } from './components/BrowseQuestions';
 import { DirectoryView } from './components/DirectoryView';
 import { PageSettingsBar } from './components/PageSettingsBar';
+import { SettingsModal } from './components/SettingsModal';
 import { ScreenRecognitionProvider, useScreen } from './context/ScreenRecognitionContext';
 import { ScreenRecognitionToast } from './components/ScreenRecognitionToast';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -21,8 +23,9 @@ function PortalRoot() {
   const [currentView, setCurrentView] = useState<'dashboard' | 'exam' | 'learning' | 'browse' | 'directory'>('dashboard');
   const [activeSession, setActiveSession] = useState<ExamSession | null>(null);
   const [pageFitMode, setPageFitMode] = useState<'standard' | 'full'>('standard');
-  const { deviceType, isForced, forcedMode, width, setForcedMode } = useScreen();
-  const { isNavyWhite } = useTheme();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const { isForced, forcedMode, setForcedMode } = useScreen();
+  const { isNavyWhite, setTheme } = useTheme();
 
   // Keep stored user updated
   const handleLoginSuccess = (user: User) => {
@@ -36,6 +39,15 @@ function PortalRoot() {
     setCurrentUser(null);
     setActiveSession(null);
     setCurrentView('dashboard');
+  };
+
+  // Quick reset settings handler (Navy & White theme, Auto hardware sensing, standard layout, voice reset)
+  const handleQuickResetSettings = () => {
+    setForcedMode('auto');
+    setPageFitMode('standard');
+    setTheme('navy-white');
+    voiceReader.resetSettings();
+    saveExamPreferences(DEFAULT_EXAM_PREFS);
   };
 
   // Launch an Exam Session
@@ -123,7 +135,6 @@ function PortalRoot() {
     });
 
     const diffTier = getDifficultyTier(difficultyLevel);
-
     const cleanBaseTitle = session.title.replace(/\[Level \d.*?\]/g, '').trim();
 
     const newSession: ExamSession = {
@@ -180,6 +191,8 @@ function PortalRoot() {
         <PageSettingsBar 
           pageFitMode={pageFitMode} 
           onTogglePageFit={() => setPageFitMode(m => m === 'standard' ? 'full' : 'standard')} 
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          onQuickResetSettings={handleQuickResetSettings}
         />
         <div className={simulationContainerClass}>
           <Navbar
@@ -187,6 +200,7 @@ function PortalRoot() {
             currentView="dashboard"
             onNavigate={() => {}}
             onLogout={() => {}}
+            onOpenSettings={() => setIsSettingsOpen(true)}
           />
           <main className="flex-1">
             <LoginPage onLoginSuccess={handleLoginSuccess} />
@@ -206,6 +220,14 @@ function PortalRoot() {
             </div>
           </footer>
         </div>
+
+        <SettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          pageFitMode={pageFitMode}
+          onChangePageFitMode={setPageFitMode}
+          onSettingsReset={handleQuickResetSettings}
+        />
       </div>
     );
   }
@@ -217,6 +239,8 @@ function PortalRoot() {
         <PageSettingsBar 
           pageFitMode={pageFitMode} 
           onTogglePageFit={() => setPageFitMode(m => m === 'standard' ? 'full' : 'standard')} 
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          onQuickResetSettings={handleQuickResetSettings}
         />
         <div className={simulationContainerClass}>
           <ExamEngine
@@ -230,6 +254,14 @@ function PortalRoot() {
             onGenerateNewExam={handleGenerateNewExamSession}
           />
         </div>
+
+        <SettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          pageFitMode={pageFitMode}
+          onChangePageFitMode={setPageFitMode}
+          onSettingsReset={handleQuickResetSettings}
+        />
       </div>
     );
   }
@@ -240,6 +272,8 @@ function PortalRoot() {
       <PageSettingsBar 
         pageFitMode={pageFitMode} 
         onTogglePageFit={() => setPageFitMode(m => m === 'standard' ? 'full' : 'standard')} 
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onQuickResetSettings={handleQuickResetSettings}
       />
       <div className={simulationContainerClass}>
         <Navbar
@@ -247,6 +281,7 @@ function PortalRoot() {
           currentView={currentView}
           onNavigate={(view) => setCurrentView(view)}
           onLogout={handleLogout}
+          onOpenSettings={() => setIsSettingsOpen(true)}
         />
 
         <main className="flex-1">
@@ -256,6 +291,7 @@ function PortalRoot() {
               onStartExam={handleStartExam}
               onNavigate={(view) => setCurrentView(view)}
               onReviewPastSession={handleReviewPastSession}
+              onOpenSettings={() => setIsSettingsOpen(true)}
             />
           )}
 
@@ -289,6 +325,14 @@ function PortalRoot() {
           </div>
         </footer>
       </div>
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        pageFitMode={pageFitMode}
+        onChangePageFitMode={setPageFitMode}
+        onSettingsReset={handleQuickResetSettings}
+      />
     </div>
   );
 }

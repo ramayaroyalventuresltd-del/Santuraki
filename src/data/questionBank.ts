@@ -3,18 +3,73 @@ import { PSR_CHAPTERS, FR_CHAPTERS, PPA_CHAPTERS, FCT_GK_CHAPTERS, getCadreChapt
 import { FCTA_CADRES } from './fctaData';
 import { LEVEL_3_DIRECTORATE_QUESTIONS } from './directorateQuestions';
 
-// High-Yield real curated question seeds for PSR (10 per chapter = 200)
+// Utility to normalize question text for strict deduplication
+export function normalizeQuestionText(text: string): string {
+  return text
+    .replace(/\[Chapter\s*\d+[^\]]*\]/gi, '')
+    .replace(/\[Module\s*\d+[^\]]*\]/gi, '')
+    .replace(/\[Level\s*\d+[^\]]*\]/gi, '')
+    .replace(/\[Scenario[^\]]*\]/gi, '')
+    .replace(/\[Statutory[^\]]*\]/gi, '')
+    .replace(/\[Executive[^\]]*\]/gi, '')
+    .replace(/\(Ref:[^)]*\)/gi, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+// Master deduplication function: filters out duplicate IDs and duplicate question texts,
+// and optionally backfills from a secondary pool to maintain exact target count.
+export function deduplicateQuestions(
+  questions: Question[],
+  backfillPool?: Question[],
+  targetCount?: number
+): Question[] {
+  const seenIds = new Set<string>();
+  const seenTexts = new Set<string>();
+  const result: Question[] = [];
+
+  for (const q of questions) {
+    if (!q || !q.id || !q.questionText) continue;
+    const norm = normalizeQuestionText(q.questionText);
+    if (seenIds.has(q.id) || seenTexts.has(norm)) {
+      continue; // Skip duplicate question!
+    }
+    seenIds.add(q.id);
+    seenTexts.add(norm);
+    result.push(q);
+  }
+
+  // If a target count was requested and backfill pool is available, top up with unique questions
+  if (targetCount && targetCount > result.length && backfillPool && backfillPool.length > 0) {
+    for (const q of backfillPool) {
+      if (result.length >= targetCount) break;
+      if (!q || !q.id || !q.questionText) continue;
+      const norm = normalizeQuestionText(q.questionText);
+      if (seenIds.has(q.id) || seenTexts.has(norm)) {
+        continue;
+      }
+      seenIds.add(q.id);
+      seenTexts.add(norm);
+      result.push(q);
+    }
+  }
+
+  return result;
+}
+
+// High-Yield real curated question seeds for PSR (Chapters 1 to 4: 10 per chapter = 40 unique questions)
 const PSR_SEEDS: Record<number, { q: string; opts: [string, string, string, string]; ans: number; exp: string; ref: string }[]> = {
   1: [
     {
       q: 'According to the Public Service Rules, to whom do the provisions of the PSR primarily apply?',
       opts: [
-        'Only political office holders and special advisers',
         'All pensionable and contract officers serving in the Federal Civil Service and executive agencies',
+        'Only political office holders and special advisers',
         'Only military and paramilitary personnel',
         'Private sector contractors engaged by the Federal Government'
       ],
-      ans: 1,
+      ans: 0,
       exp: 'PSR 010101 stipulates that the Public Service Rules apply to all officers holding pensionable and contract appointments in the Federal Public Service unless specifically exempted.',
       ref: 'PSR 010101'
     },
@@ -524,7 +579,7 @@ export function generateQuestionsForChapter(
     }));
   }
 
-  // High-yield procedural questions tailored to the exact chapter domain
+  // Generate 10 completely unique questions per chapter across 10 distinct statutory dimensions
   const questions: Question[] = [];
 
   for (let i = 1; i <= 10; i++) {
@@ -563,22 +618,18 @@ function buildCuratedQuestionItem(
   explanation: string;
   referenceRule: string;
 } {
-  // Financial Regulations Questions
   if (subjectId === 'fr') {
     return generateFRQuestion(chapterNumber, chapterTitle, coreRuleRef, itemIndex);
   }
 
-  // Public Procurement Act Questions
   if (subjectId === 'ppa') {
     return generatePPAQuestion(chapterNumber, chapterTitle, coreRuleRef, itemIndex);
   }
 
-  // FCT General Knowledge Questions
   if (subjectId === 'fct_gk') {
     return generateFCTGKQuestion(chapterNumber, chapterTitle, coreRuleRef, itemIndex);
   }
 
-  // PSR Chapters 5 to 20
   if (subjectId === 'psr') {
     return generatePSRAdvancedQuestion(chapterNumber, chapterTitle, coreRuleRef, itemIndex);
   }
@@ -587,6 +638,7 @@ function buildCuratedQuestionItem(
   return generateCadreQuestion(subjectId, categoryLabel, chapterNumber, chapterTitle, coreRuleRef, itemIndex);
 }
 
+// 1. FINANCIAL REGULATIONS: 10 Distinct Question Profiles per Chapter
 function generateFRQuestion(
   chapterNumber: number,
   chapterTitle: string,
@@ -618,56 +670,6 @@ function generateFRQuestion(
         ans: 0,
         exp: 'A General Warrant authorises the Accountant-General of the Federation to disburse funds appropriated for recurrent services.',
         ref: 'FR 104'
-      },
-      {
-        q: 'What is a "Contingencies Fund" and under what conditions may it be accessed?',
-        opts: [
-          'An urgent fund established under Section 83 of the Constitution for unforeseen and urgent expenditures of public interest',
-          'A petty cash tin kept in the registry for lunch',
-          'A loan scheme for union executives',
-          'An account for holiday festivities'
-        ],
-        ans: 0,
-        exp: 'Section 83 CFRN and FR 112 empower the Minister of Finance to authorize withdrawals from the Contingencies Fund for urgent, unavoidable needs.',
-        ref: 'FR 112 & S.83 CFRN'
-      },
-      {
-        q: 'What happens to unspent funds released under recurrent expenditure warrants at the close of the financial year (31st December)?',
-        opts: [
-          'They lapse and must be returned to the Consolidated Revenue Fund via the Treasury Single Account (TSA)',
-          'They are shared among departmental staff as end-of-year bonuses',
-          'They are rolled over automatically without re-appropriation',
-          'They are moved to a private savings account'
-        ],
-        ans: 0,
-        exp: 'Under FR 118, all unspent balances of recurrent expenditure at the expiration of the financial year lapse and return to the CRF.',
-        ref: 'FR 118'
-      }
-    ],
-    2: [
-      {
-        q: 'Who is designated as the "Accounting Officer" of a Federal Ministry or Extra-Ministerial Department?',
-        opts: [
-          'The Permanent Secretary (or Executive Secretary / Director-General in Parastatals)',
-          'The chief accountant only',
-          'The external auditor',
-          'The highest ranking administrative driver'
-        ],
-        ans: 0,
-        exp: 'FR 105 names the Permanent Secretary or Chief Executive Officer as the substantive Accounting Officer personally answerable for the financial administration of the MDA.',
-        ref: 'FR 105'
-      },
-      {
-        q: 'What is the personal pecuniary liability of an Accounting Officer who authorizes expenditure contrary to Financial Regulations?',
-        opts: [
-          'They can be surcharged, held personally liable for the full amount, and face disciplinary and legal sanctions',
-          'They enjoy total personal immunity from financial surcharges',
-          'Their liability is transferred to the messenger',
-          'They are simply asked to write a letter of apology'
-        ],
-        ans: 0,
-        exp: 'Under FR 108, an Accounting Officer who signs off on irregular or extra-budgetary expenditure incurs personal financial liability and surcharges.',
-        ref: 'FR 108'
       }
     ],
     5: [
@@ -725,10 +727,10 @@ function generateFRQuestion(
   };
 
   const pool = frDatabase[chapterNumber];
-  if (pool && pool[(idx - 1) % pool.length]) {
-    const seed = pool[(idx - 1) % pool.length];
+  if (pool && pool[idx - 1]) {
+    const seed = pool[idx - 1];
     return {
-      questionText: `${seed.q} [Chapter ${chapterNumber} Practice ${idx}]`,
+      questionText: seed.q,
       options: seed.opts,
       correctOptionIndex: seed.ans,
       explanation: seed.exp,
@@ -736,32 +738,143 @@ function generateFRQuestion(
     };
   }
 
-  // Deterministic procedural generation matching chapter title
-  const coreAspects = [
-    { aspect: 'statutory procedure', q: `Under Chapter ${chapterNumber} (${chapterTitle}), what is the primary regulatory standard prescribed by Financial Regulations?`, ans: 0, exp: `FR provisions on ${chapterTitle} enforce strict accountability, documented audit trails, and segregation of fiscal responsibilities.` },
-    { aspect: 'sanctions for non-compliance', q: `What penalty or sanction is specified in Financial Regulations for non-compliance with ${chapterTitle}?`, ans: 1, exp: `Officers who fail to adhere to ${chapterTitle} are subject to audit query, salary surcharge, and referral to the Anti-Corruption and Disciplinary Committee under ${coreRuleRef}.` },
-    { aspect: 'authorization threshold', q: `Who holds statutory signing authority for approving transactions governed by ${chapterTitle}?`, ans: 0, exp: `Transactions under ${chapterTitle} must be cleared by the Accounting Officer or delegated officer in strict compliance with ${coreRuleRef}.` },
-    { aspect: 'documentation requirement', q: `Which mandatory financial document or register must be maintained under ${chapterTitle}?`, ans: 2, exp: `Accounting records require prescribed Treasury forms, vote ledgers, and verified audit inspection sheets as stipulated in ${coreRuleRef}.` },
-    { aspect: 'timeline compliance', q: `Within what timeframe must transactions and retirements relating to ${chapterTitle} be finalized?`, ans: 0, exp: `Regulations specify prompt retirement (typically within 7 to 14 days or before 31st December) pursuant to ${coreRuleRef}.` }
-  ];
-
-  const aspect = coreAspects[(idx - 1) % coreAspects.length];
-  const optionsArr: [string, string, string, string] = [
-    `Strict compliance with ${coreRuleRef} requiring Accounting Officer approval and verified vouchers`,
-    `Informal verbal consent between the cashier and the desk officer`,
-    `Delegation of financial responsibility to unverified third-party contractors`,
-    `Post-dated adjustment of accounting records without audit notification`
-  ];
-
-  return {
-    questionText: `${aspect.q} (Ref: ${coreRuleRef})`,
-    options: optionsArr,
-    correctOptionIndex: 0,
-    explanation: aspect.exp,
-    referenceRule: `${coreRuleRef}`
-  };
+  // 10 Distinct Non-Duplicate Question Formats for every FR chapter
+  switch (idx) {
+    case 1:
+      return {
+        questionText: `Under Financial Regulations Chapter ${chapterNumber} (${chapterTitle}), what constitutes the primary statutory requirement established by ${coreRuleRef}?`,
+        options: [
+          `Strict compliance with ${coreRuleRef} requiring statutory warrant, verified vouchers, and Accounting Officer authorization`,
+          `Informal verbal consent between the finance officer and the initiating unit head`,
+          `Delegating financial management to unverified third-party contractors`,
+          `Post-dated adjustment of accounting records without internal audit notification`
+        ],
+        correctOptionIndex: 0,
+        explanation: `Provisions of Financial Regulations on ${chapterTitle} mandate that all financial transactions be grounded in legislative warrant and documented audit trails under ${coreRuleRef}.`,
+        referenceRule: coreRuleRef
+      };
+    case 2:
+      return {
+        questionText: `What is the personal pecuniary liability of an Accounting Officer or Sub-Accounting Officer who signs off on irregular expenditure regarding ${chapterTitle}?`,
+        options: [
+          `Automatic immunity with no personal financial consequence`,
+          `Personal financial surcharge for the full irregular amount, disciplinary query, and referral for prosecution under FR 108 and FR 3129`,
+          `Transfer of the entire financial liability to the junior clerical staff of the registry`,
+          `Deduction of only 1% from the department's annual stationery allocation`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Under FR 108 and FR 3129, an Accounting Officer who signs off on irregular or extra-budgetary expenditure incurs direct personal financial liability and surcharges.`,
+        referenceRule: 'FR 108 / FR 3129'
+      };
+    case 3:
+      return {
+        questionText: `Which mandatory accounting document, register, or Treasury form must be maintained when executing transactions under ${chapterTitle} pursuant to ${coreRuleRef}?`,
+        options: [
+          `An informal desk memorandum kept by the initiating desk officer`,
+          `A private digital spreadsheet stored on an unsecured external flash drive`,
+          `Prescribed Treasury Form 46 (Departmental Vote Book) and verified payment vouchers showing vote balances`,
+          `A commercial bank promotional brochure countersigned by the cashier`
+        ],
+        correctOptionIndex: 2,
+        explanation: `Provisions of ${coreRuleRef} require strict maintenance of the Departmental Vote Book (Treasury Form 46), payment vouchers, and official ledgers before commitment.`,
+        referenceRule: coreRuleRef
+      };
+    case 4:
+      return {
+        questionText: `What is the mandatory role of the Internal Audit Division before payments or retirements are finalized for ${chapterTitle} under ${coreRuleRef}?`,
+        options: [
+          `Conducting 100% pre-payment audit verification, confirming vote availability, and authenticating supporting documents`,
+          `Signing contracts on behalf of the Ministerial Tenders Board`,
+          `Authorizing supplementary warrants without Ministry of Finance concurrence`,
+          `Serving as the commercial cashier for physical cash disbursements`
+        ],
+        correctOptionIndex: 0,
+        explanation: `Internal Audit in the Federal Public Service is mandated under FR Chapter 17 to execute comprehensive pre-payment audits, verifying validity and budget allocation.`,
+        referenceRule: 'FR 1701 - 1720'
+      };
+    case 5:
+      return {
+        questionText: `Within what statutory timeline must standing imprests, special imprests, or advances related to ${chapterTitle} be retired pursuant to Financial Regulations?`,
+        options: [
+          `Anytime within the subsequent five fiscal years`,
+          `Immediately upon completion of the assignment, and strictly on or before 31st December of the current financial year`,
+          `Only after the officer reaches mandatory statutory retirement age`,
+          `Within 48 hours of initial employment confirmation`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Financial Regulations strictly mandate that all imprests and operational advances must be retired promptly upon completion of the assignment and never later than 31st December.`,
+        referenceRule: 'FR 1001 - 1025'
+      };
+    case 6:
+      return {
+        questionText: `Which of the following actions constitutes a serious financial irregularity under ${chapterTitle} pursuant to Financial Regulations?`,
+        options: [
+          `Reconciling bank statements with the cash book on a monthly basis`,
+          `Splitting purchase orders or payment vouchers to circumvent statutory authorization thresholds`,
+          `Promptly submitting Treasury payment vouchers for internal audit review`,
+          `Maintaining an updated register of unserviceable store items`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Splitting transactions or vouchers to circumvent financial thresholds is a serious breach of Financial Regulations carrying severe disciplinary sanctions.`,
+        referenceRule: 'FR 2901 - 2950'
+      };
+    case 7:
+      return {
+        questionText: `Under the Treasury Single Account (TSA) guidelines governing ${chapterTitle}, how must public revenues, fees, or receipts be processed?`,
+        options: [
+          `Deposited in personal savings accounts of revenue collecting officers`,
+          `Remitted electronically via the approved CBN / Remita e-collection gateway directly into the Consolidated Revenue Fund`,
+          `Retained as physical cash in departmental strongrooms indefinitely`,
+          `Transferred to foreign private accounts for currency speculation`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Federal TSA regulations dictate that all public revenues and payments under ${chapterTitle} must flow through the central e-collection gateway into the CRF at the Central Bank.`,
+        referenceRule: 'FR TSA Guidelines'
+      };
+    case 8:
+      return {
+        questionText: `When the Auditor-General for the Federation issues an inspection query regarding ${chapterTitle}, within how many days must the Accounting Officer formally respond?`,
+        options: [
+          `Within twenty-one (21) calendar days of receipt of the audit query`,
+          `Within ninety (90) calendar days`,
+          `Within twenty-four (24) hours without examining files`,
+          `Only when invited to the next annual budget defense`
+        ],
+        correctOptionIndex: 0,
+        explanation: `FR 3101 - 3130 requires Accounting Officers to respond to Auditor-General inspection queries comprehensively within 21 days.`,
+        referenceRule: 'FR 3101 - 3130'
+      };
+    case 9:
+      return {
+        questionText: `What statutory board must be constituted before unserviceable equipment, stores, or deficiencies related to ${chapterTitle} can be condemned and written off?`,
+        options: [
+          `The Junior Staff Disciplinary Sub-Committee`,
+          `A formally appointed Board of Survey constituted in accordance with Financial Regulations`,
+          `The Departmental Sports and Welfare Committee`,
+          `A private association of market vendors`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Under FR Chapters 25 and 29, public stores and assets can only be written off or auctioned upon inspection and report by a formally constituted Board of Survey.`,
+        referenceRule: 'FR 2501 - 2530'
+      };
+    case 10:
+    default:
+      return {
+        questionText: `[Financial Scenario GL 14 - 16] A Departmental Director pressures the Finance Division to execute an urgent payment under ${chapterTitle} after the vote is exhausted, promising to refund from subsequent allocations. What is the lawful duty of the Head of Finance under ${coreRuleRef}?`,
+        options: [
+          `Execute the payment using imprest funds from another division`,
+          `Refuse the transaction outright and issue written advice stating that no expenditure can be incurred without approved vote or lawful virement under ${coreRuleRef}`,
+          `Debit the commercial bank account of the junior clerical staff`,
+          `Post-date the transaction vouchers to the following year without notifying audit`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Financial Regulations strictly prohibit commitments without available funds. The finance officer must refuse irregular payment and tender written advice under FR 106 / ${coreRuleRef}.`,
+        referenceRule: coreRuleRef
+      };
+  }
 }
 
+// 2. PUBLIC PROCUREMENT ACT: 10 Distinct Question Profiles per Chapter
 function generatePPAQuestion(
   chapterNumber: number,
   chapterTitle: string,
@@ -847,18 +960,6 @@ function generatePPAQuestion(
         ans: 0,
         exp: 'Section 22 of PPA 2007 establishes the Accounting Officer (Permanent Secretary) as Chairman of the Tenders Board.',
         ref: 'PPA 2007 Sec 22'
-      },
-      {
-        q: 'What is the role of the Procurement Department/Unit in relation to the Ministerial Tenders Board?',
-        opts: [
-          'It serves as the Secretariat of the Tenders Board, preparing documents, bids, and technical evaluations',
-          'It votes to override the Chairman',
-          'It finances the contract from staff personal funds',
-          'It takes no part in procurement proceedings'
-        ],
-        ans: 0,
-        exp: 'Under Section 22(3), the Director/Head of the Procurement Department serves as the Secretary to the Tenders Board without voting rights.',
-        ref: 'PPA 2007 Sec 22(3)'
       }
     ],
     10: [
@@ -878,10 +979,10 @@ function generatePPAQuestion(
   };
 
   const pool = ppaDatabase[chapterNumber];
-  if (pool && pool[(idx - 1) % pool.length]) {
-    const seed = pool[(idx - 1) % pool.length];
+  if (pool && pool[idx - 1]) {
+    const seed = pool[idx - 1];
     return {
-      questionText: `${seed.q} [Chapter ${chapterNumber} Practice ${idx}]`,
+      questionText: seed.q,
       options: seed.opts,
       correctOptionIndex: seed.ans,
       explanation: seed.exp,
@@ -889,39 +990,143 @@ function generatePPAQuestion(
     };
   }
 
-  const ppaCorePatterns = [
-    {
-      q: `Under PPA 2007 Chapter ${chapterNumber} (${chapterTitle}), what is the primary compliance mandate governing procuring entities?`,
-      ans: 0,
-      exp: `Provisions of ${chapterTitle} enforce strict adherence to transparency, non-collusion, and adherence to ${coreRuleRef}.`
-    },
-    {
-      q: `What is the legal consequence of violating the provisions of ${chapterTitle} under Section 58 of the Public Procurement Act?`,
-      ans: 0,
-      exp: `Section 58 of PPA 2007 prescribes 5 to 10 years imprisonment without option of fine, debarment, and summary dismissal from public service.`
-    },
-    {
-      q: `In the context of ${chapterTitle}, which threshold or committee review is mandated before contract award?`,
-      ans: 0,
-      exp: `The procurement plan, evaluation report, and approval must be processed through the competent Tenders Board pursuant to ${coreRuleRef}.`
-    }
-  ];
-
-  const pat = ppaCorePatterns[(idx - 1) % ppaCorePatterns.length];
-  return {
-    questionText: `${pat.q} (Ref: ${coreRuleRef})`,
-    options: [
-      `Strict procedural compliance with ${coreRuleRef} guaranteeing fair competition and full documentation`,
-      `Informal waiver granted by the procurement clerk without BPP concurrence`,
-      `Selective exclusion of non-indigenous contractors to expedite award`,
-      `Splitting of the contract package into sub-threshold fragments`
-    ],
-    correctOptionIndex: 0,
-    explanation: pat.exp,
-    referenceRule: coreRuleRef
-  };
+  // 10 Distinct Non-Duplicate Question Formats for every PPA chapter
+  switch (idx) {
+    case 1:
+      return {
+        questionText: `Under Chapter ${chapterNumber} of the Public Procurement Act 2007 (${chapterTitle}), what fundamental statutory mandate binds all procuring entities under ${coreRuleRef}?`,
+        options: [
+          `Strict compliance with ${coreRuleRef} guaranteeing open competition, transparency, equal access, and value for money`,
+          `Informal selective selection of contractors without public tender advertisements`,
+          `Sole-source contract allocations based entirely on verbal recommendations`,
+          `Exemption of capital procurement from legislative appropriations`
+        ],
+        correctOptionIndex: 0,
+        explanation: `Section 16 of the Public Procurement Act 2007 sets open competitive bidding, equal opportunity, and transparency as the default standard governing all public contracts.`,
+        referenceRule: coreRuleRef
+      };
+    case 2:
+      return {
+        questionText: `Who possesses the statutory authority to approve procurement awards under ${chapterTitle} within official financial thresholds?`,
+        options: [
+          `The Ministerial Tenders Board (MTB) chaired by the Permanent Secretary / Accounting Officer`,
+          `The external project consultant independently without government review`,
+          `The junior storekeeper of the user department`,
+          `A commercial bank branch manager handling the escrow account`
+        ],
+        correctOptionIndex: 0,
+        explanation: `Section 22 of the PPA 2007 establishes the Ministerial Tenders Board, chaired by the Permanent Secretary, as the competent approval authority within threshold limits.`,
+        referenceRule: 'PPA 2007 Sec 22'
+      };
+    case 3:
+      return {
+        questionText: `When is a formal Certificate of "No Objection" to Contract Award from the Bureau of Public Procurement (BPP) mandatory under ${chapterTitle}?`,
+        options: [
+          `Only after the contractor has completely finished construction and collected final payment`,
+          `Prior to the award and commitment of contracts exceeding statutory threshold ceilings`,
+          `Only for contracts awarded to foreign non-governmental charities`,
+          `Never; BPP certificates are optional advisory recommendations`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Under Section 16(1) of the PPA 2007, a BPP Certificate of "No Objection" is a statutory condition precedent before contract awards above thresholds can be executed.`,
+        referenceRule: 'PPA 2007 Sec 16(1)'
+      };
+    case 4:
+      return {
+        questionText: `What is the minimum statutory advertisement window required for standard Open Competitive Bidding under Section 25 of the PPA 2007?`,
+        options: [
+          `Forty-eight (48) hours on social media`,
+          `At least six (6) weeks from the date of publication in national dailies and the Federal Tenders Journal`,
+          `Twelve (12) calendar months`,
+          `Seven (7) calendar days on the departmental notice board`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Section 25 of PPA 2007 prescribes a mandatory minimum of six (6) weeks advertisement period in at least two national dailies and the Federal Tenders Journal.`,
+        referenceRule: 'PPA 2007 Sec 25'
+      };
+    case 5:
+      return {
+        questionText: `What statutory limit governs the mobilization fee that may be paid to a contractor under ${chapterTitle} pursuant to the Public Procurement Act?`,
+        options: [
+          `Up to 100% of the total contract sum with no security deposit`,
+          `A mobilization fee not exceeding fifteen percent (15%) supported by an unconditional Advance Payment Guarantee (APG) from a commercial bank`,
+          `Exactly fifty percent (50%) in physical currency notes`,
+          `Mobilization fees are completely prohibited in all circumstances`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Section 35 of the PPA 2007 limits mobilization fees to a maximum of 15% of the contract value, backed by an irrevocable commercial bank guarantee.`,
+        referenceRule: 'PPA 2007 Sec 35'
+      };
+    case 6:
+      return {
+        questionText: `Under Section 58 of the Public Procurement Act 2007, what is the criminal penalty for tender splitting, bid-rigging, or procurement corruption relating to ${chapterTitle}?`,
+        options: [
+          `A minor administrative caution logged in the departmental register`,
+          `A mandatory term of not less than 5 to 10 years imprisonment without option of fine, summary dismissal from public service, and corporate debarment`,
+          `A 2-week leave of absence with full salary intact`,
+          `A nominal fine of ₦5,000 paid to the staff cooperative`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Section 58 of PPA 2007 establishes stringent penal liability: 5 to 10 years imprisonment without option of fine, dismissal, and blacklisting for procurement offences.`,
+        referenceRule: 'PPA 2007 Sec 58'
+      };
+    case 7:
+      return {
+        questionText: `Under what strict statutory conditions may Emergency Procurement be invoked under Section 43 of the PPA 2007 for ${chapterTitle}?`,
+        options: [
+          `To spend unspent budget balances during the last week of December`,
+          `In verified natural disasters, catastrophic threats to public safety, or war, with mandatory notification to BPP within 30 days of award`,
+          `Whenever a contractor requests accelerated payment terms`,
+          `Whenever an officer is proceeding on annual leave`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Section 43 allows emergency procurement only during immediate threats to life, property, or severe disasters, requiring formal post-award submission to BPP within 30 days.`,
+        referenceRule: 'PPA 2007 Sec 43'
+      };
+    case 8:
+      return {
+        questionText: `Which evaluation standard must the Technical Evaluation Sub-Committee apply when assessing competing tenders under ${chapterTitle}?`,
+        options: [
+          `Selecting the contractor with the highest bid price to maximize government spending`,
+          `Recommending the Lowest Evaluated Responsive Bid that fulfills all technical specifications, statutory certifications, and post-qualification checks`,
+          `Awarding the contract based solely on personal relationships with the evaluation chairman`,
+          `Picking bids at random out of an unsealed tender box`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Section 24 and 32 of PPA 2007 specify that contracts must be awarded to the lowest evaluated responsive bidder possessing the requisite technical capability.`,
+        referenceRule: 'PPA 2007 Sec 32'
+      };
+    case 9:
+      return {
+        questionText: `What procedure is mandatory during public bid opening under Section 30 of the Public Procurement Act 2007 for ${chapterTitle}?`,
+        options: [
+          `Opening bids in secret behind closed doors without bidders present`,
+          `Opening tenders immediately upon deadline expiry in public view of bidders and accredited CSOs, announcing tender sums aloud, and signing the attendance register`,
+          `Transporting sealed bid boxes to a private hotel before opening`,
+          `Shredding non-conforming bids prior to public attendance`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Section 30 mandates immediate public bid opening witnessed by bidders, non-governmental observers, and media, with bid amounts read aloud.`,
+        referenceRule: 'PPA 2007 Sec 30'
+      };
+    case 10:
+    default:
+      return {
+        questionText: `What is the statutory timeline for an aggrieved contractor to submit a written protest against a tender decision under the administrative review mechanism of the PPA 2007?`,
+        options: [
+          `Within twenty-four (24) hours after bid advertisement`,
+          `Within fifteen (15) working days from the date the bidder became aware of the breach, addressed directly to the Accounting Officer`,
+          `Within five (5) fiscal years after contract commissioning`,
+          `Only after filing a suit in the International Court of Justice`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Under Section 54 of the PPA 2007, an aggrieved bidder must lodge a formal complaint to the Accounting Officer within 15 working days.`,
+        referenceRule: 'PPA 2007 Sec 54'
+      };
+  }
 }
 
+// 3. FCT GENERAL KNOWLEDGE: 10 Distinct Question Profiles per Chapter
 function generateFCTGKQuestion(
   chapterNumber: number,
   chapterTitle: string,
@@ -1036,10 +1241,10 @@ function generateFCTGKQuestion(
   };
 
   const pool = gkDatabase[chapterNumber];
-  if (pool && pool[(idx - 1) % pool.length]) {
-    const seed = pool[(idx - 1) % pool.length];
+  if (pool && pool[idx - 1]) {
+    const seed = pool[idx - 1];
     return {
-      questionText: `${seed.q} [Chapter ${chapterNumber} Practice ${idx}]`,
+      questionText: seed.q,
       options: seed.opts,
       correctOptionIndex: seed.ans,
       explanation: seed.exp,
@@ -1047,34 +1252,143 @@ function generateFCTGKQuestion(
     };
   }
 
-  const defaultGKPatterns = [
-    {
-      q: `Under FCT Administration Chapter ${chapterNumber} (${chapterTitle}), what key institutional policy regulates this domain?`,
-      ans: 0,
-      exp: `FCTA guidelines under ${chapterTitle} govern urban management, statutory compliance, and executive delivery under ${coreRuleRef}.`
-    },
-    {
-      q: `Which FCTA agency or department exercises primary enforcement authority over matters concerning ${chapterTitle}?`,
-      ans: 0,
-      exp: `The designated FCTA Mandate Secretariat / Agency is legally empowered to enforce standards specified in ${coreRuleRef}.`
-    }
-  ];
-
-  const p = defaultGKPatterns[(idx - 1) % defaultGKPatterns.length];
-  return {
-    questionText: `${p.q} (Ref: ${coreRuleRef})`,
-    options: [
-      `Statutory provisions enacted under ${coreRuleRef} and overseen by the FCTA Executive leadership`,
-      `Informal community customary accords without statutory gazette`,
-      `Private real estate developer guidelines without FCDA approval`,
-      `Commercial bank operational mandates`
-    ],
-    correctOptionIndex: 0,
-    explanation: p.exp,
-    referenceRule: coreRuleRef
-  };
+  // 10 Distinct Non-Duplicate Question Formats for every FCT GK chapter
+  switch (idx) {
+    case 1:
+      return {
+        questionText: `Under Chapter ${chapterNumber} of FCT General Knowledge (${chapterTitle}), what foundational enactment or milestone established this policy under ${coreRuleRef}?`,
+        options: [
+          `Statutory provisions enacted under ${coreRuleRef} and overseen by the FCTA Executive leadership`,
+          `Informal community customary accords without statutory gazette`,
+          `Private real estate developer guidelines without FCDA approval`,
+          `Commercial bank operational mandates`
+        ],
+        correctOptionIndex: 0,
+        explanation: `The regulatory framework of ${chapterTitle} is grounded in statutory laws and territorial circulars pursuant to ${coreRuleRef}.`,
+        referenceRule: coreRuleRef
+      };
+    case 2:
+      return {
+        questionText: `How are executive administrative powers over ${chapterTitle} exercised constitutionally in the Federal Capital Territory?`,
+        options: [
+          `Under Section 302 of the 1999 Constitution, the President delegates executive authority to the Minister of the FCT, who administers the Territory as analogous to a State Governor`,
+          `Through a daily referendum conducted across social media networks`,
+          `By the commercial chambers of commerce independently`,
+          `Directly by foreign diplomatic missions situated in the Central Business District`
+        ],
+        correctOptionIndex: 0,
+        explanation: `Under Sections 299 and 302 of the 1999 Constitution, executive powers of the FCT are delegated by the President to the Minister of the FCT.`,
+        referenceRule: '1999 CFRN Sec 299 & 302'
+      };
+    case 3:
+      return {
+        questionText: `Which FCTA organ, Mandate Secretariat, or specialized Agency exercises primary operational authority over ${chapterTitle}?`,
+        options: [
+          `The designated FCTA Mandate Secretariat / Agency legally empowered to enforce standards specified in ${coreRuleRef}`,
+          `An ad-hoc temporary committee formed without statutory gazetting`,
+          `The private security guards union of the Federal Capital City`,
+          `The inter-state transport drivers association solely`
+        ],
+        correctOptionIndex: 0,
+        explanation: `Mandate Secretariats created under Order 1 of 2004 function as territorial ministries with executive responsibility for ${chapterTitle}.`,
+        referenceRule: coreRuleRef
+      };
+    case 4:
+      return {
+        questionText: `In the local administration of the Federal Capital Territory, how do the six (6) Area Councils interface regarding ${chapterTitle}?`,
+        options: [
+          `Area Councils have no legal existence within the boundaries of the FCT`,
+          `The six Area Councils (AMAC, Abaji, Bwari, Gwagwalada, Kuje, Kwali) exercise concurrent local governance and service delivery under territorial byelaws`,
+          `All six councils are managed directly by commercial real estate firms`,
+          `Area Councils operate under foreign municipal legislation`
+        ],
+        correctOptionIndex: 1,
+        explanation: `The six FCT Area Councils execute local governance, environmental sanitation, primary education, and grassroots community administration.`,
+        referenceRule: 'FCT Area Councils Act'
+      };
+    case 5:
+      return {
+        questionText: `How does effective urban management in ${chapterTitle} support the implementation of the Abuja Master Plan?`,
+        options: [
+          `By ensuring infrastructure developments, zoning codes, and land usages strictly adhere to the phased master plan designed by International Planning Associates (IPA)`,
+          `By allowing indiscriminate commercial settlements in designated green conservation wedges`,
+          `By abolishing all building setback regulations across residential districts`,
+          `By privatizing all arterial highway reservations to highest bidders`
+        ],
+        correctOptionIndex: 0,
+        explanation: `The Abuja Master Plan requires strict zoning, preservation of green buffers, structured phase development (Phases 1-4), and infrastructure corridor integrity.`,
+        referenceRule: 'Abuja Master Plan / FCDA Act'
+      };
+    case 6:
+      return {
+        questionText: `What administrative notices must precede enforcement action when the Department of Development Control or AEPB addresses infractions regarding ${chapterTitle}?`,
+        options: [
+          `Summary verbal warnings followed by immediate unregistered actions`,
+          `Statutory Stop-Work Notice, followed by Contravention Notice, and Demolition/Quit Notice allowing lawful response periods pursuant to urban planning laws`,
+          `No notice is required under any circumstance`,
+          `Notices are only served to neighbouring states`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Urban planning due process mandates progressive formal notices (Stop-Work, Contravention, and Demolition Notice) before enforcement.`,
+        referenceRule: 'Urban & Regional Planning Act Cap N138'
+      };
+    case 7:
+      return {
+        questionText: `What is the recognized constitutional and traditional status of indigenous royal stools and the Council of Chiefs in the FCT regarding ${chapterTitle}?`,
+        options: [
+          `Traditional rulers play key advisory roles in grassroots security, cultural heritage preservation, and communal harmony under the FCT Chieftaincy laws`,
+          `Traditional institutions were completely abolished by Decree No. 6 of 1976`,
+          `Royal stools are relocated outside the Territory annually`,
+          `Traditional chiefs possess statutory powers to issue private currency`
+        ],
+        correctOptionIndex: 0,
+        explanation: `The FCT Council of Chiefs, including the Ona of Abaji and other graded chiefs, partner with FCTA on peace-building, community mobilization, and cultural affairs.`,
+        referenceRule: 'FCT Chieftaincy Law'
+      };
+    case 8:
+      return {
+        questionText: `Which specialized agency manages the computerized land cadastre, Certificate of Occupancy (C of O), and land title verification in the FCT?`,
+        options: [
+          `Abuja Geographic Information Systems (AGIS) in conjunction with FCTA Land Administration Department`,
+          `The Federal Road Safety Corps (FRSC)`,
+          `The Nigerian Postal Service (NIPOST)`,
+          `A private foreign commercial consultancy exclusively`
+        ],
+        correctOptionIndex: 0,
+        explanation: `AGIS computerizes and manages all cadastral land records, Title Deeds, Rights of Occupancy (R of O), and Certificates of Occupancy for the FCT.`,
+        referenceRule: 'AGIS Statutory Mandate'
+      };
+    case 9:
+      return {
+        questionText: `What is the significance of the establishment of the autonomous FCT Civil Service Commission for career staff dealing with ${chapterTitle}?`,
+        options: [
+          `It enables career FCTA officers to rise substantively to the rank of Permanent Secretary within the FCTA administrative hierarchy`,
+          `It disbands all administrative departments across the Federal Capital Territory`,
+          `It eliminates all promotion exams for civil servants`,
+          `It requires all staff to relocate to the Federal Civil Service Commission head office`
+        ],
+        correctOptionIndex: 0,
+        explanation: `The FCT Civil Service Commission Act established independent career progression, allowing FCTA staff to reach the pinnacle rank of Permanent Secretary.`,
+        referenceRule: 'FCT Civil Service Commission Act'
+      };
+    case 10:
+    default:
+      return {
+        questionText: `What emergency coordination framework and toll-free contact is established in the FCT for rapid disaster response concerning ${chapterTitle}?`,
+        options: [
+          `FCT Emergency Management Agency (FEMA) operations coordinating emergency services via the national 112 emergency toll-free line`,
+          `Informal neighbourhood gong-beating with no government assistance`,
+          `A private pay-per-minute international call centre in Europe`,
+          `Dispatch of administrative memos via postal mail only`
+        ],
+        correctOptionIndex: 0,
+        explanation: `FEMA coordinates emergency disaster management, fire service, ambulance response, and civil defense across the FCT via the unified 112 emergency helpline.`,
+        referenceRule: 'FEMA Operational Framework'
+      };
+  }
 }
 
+// 4. PUBLIC SERVICE RULES (Chapters 5 to 20): 10 Distinct Question Profiles per Chapter
 function generatePSRAdvancedQuestion(
   chapterNumber: number,
   chapterTitle: string,
@@ -1163,10 +1477,10 @@ function generatePSRAdvancedQuestion(
   };
 
   const pool = psrAdvancedDB[chapterNumber];
-  if (pool && pool[(idx - 1) % pool.length]) {
-    const seed = pool[(idx - 1) % pool.length];
+  if (pool && pool[idx - 1]) {
+    const seed = pool[idx - 1];
     return {
-      questionText: `${seed.q} [Chapter ${chapterNumber} Practice ${idx}]`,
+      questionText: seed.q,
       options: seed.opts,
       correctOptionIndex: seed.ans,
       explanation: seed.exp,
@@ -1174,20 +1488,143 @@ function generatePSRAdvancedQuestion(
     };
   }
 
-  return {
-    questionText: `Under Chapter ${chapterNumber} of the Public Service Rules (${chapterTitle}), what is the primary regulatory standard established by ${coreRuleRef}?`,
-    options: [
-      `Strict enforcement of ${coreRuleRef} safeguarding public interest, merit, and administrative due process`,
-      `Informal discretion by the immediate unit supervisor without statutory filing`,
-      `Suspension of service regulations during public holidays`,
-      `Private settlement without documentation in the personal file`
-    ],
-    correctOptionIndex: 0,
-    explanation: `Provisions of ${chapterTitle} under ${coreRuleRef} mandate transparent compliance, formal documentation, and accountability in the Federal Civil Service.`,
-    referenceRule: coreRuleRef
-  };
+  // 10 Distinct Non-Duplicate Question Formats for every PSR chapter
+  switch (idx) {
+    case 1:
+      return {
+        questionText: `Under Chapter ${chapterNumber} of the Public Service Rules (${chapterTitle}), what is the primary regulatory standard established by ${coreRuleRef}?`,
+        options: [
+          `Strict enforcement of ${coreRuleRef} safeguarding public interest, merit, and administrative due process`,
+          `Informal discretion by the immediate unit supervisor without statutory filing`,
+          `Suspension of service regulations during public holidays`,
+          `Private settlement without documentation in the personal file`
+        ],
+        correctOptionIndex: 0,
+        explanation: `Provisions of ${chapterTitle} under ${coreRuleRef} mandate transparent compliance, formal documentation, and accountability in the Federal Civil Service.`,
+        referenceRule: coreRuleRef
+      };
+    case 2:
+      return {
+        questionText: `What is the statutory remuneration entitlement of an officer placed on formal "Interdiction" under ${chapterTitle} pending disciplinary inquiry?`,
+        options: [
+          `The officer continues to draw full salary and all executive allowances`,
+          `The officer is placed on fifty percent (50%) of substantive salary pending final determination by the Commission`,
+          `The officer is placed on zero salary with immediate pension cancellation`,
+          `The officer receives double pay to cover legal defense fees`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Under PSR disciplinary rules, an interdicted officer is entitled to receive half of their basic salary (50%) until formal determination of the charges.`,
+        referenceRule: 'PSR 030404'
+      };
+    case 3:
+      return {
+        questionText: `What is the strict statutory timeline given to a public officer to respond to a formal query regarding infractions under ${chapterTitle}?`,
+        options: [
+          `Within fourteen (14) calendar days`,
+          `Within forty-eight (48) hours, or seventy-two (72) hours as formally specified in the query letter`,
+          `Within three (3) months after salary payment`,
+          `Whenever the officer feels convenient`
+        ],
+        correctOptionIndex: 1,
+        explanation: `PSR 030307 dictates that queried officers must submit their written defense representation within 48 to 72 hours.`,
+        referenceRule: 'PSR 030307'
+      };
+    case 4:
+      return {
+        questionText: `Who exercises constitutional authority for the appointment, confirmation, and disciplinary penalties under ${chapterTitle}?`,
+        options: [
+          `The Federal Civil Service Commission (or FCTA Civil Service Commission for FCTA staff)`,
+          `The commercial bank handling payroll disbursements`,
+          `The local government trade union chapter exclusively`,
+          `An external human resources consulting firm`
+        ],
+        correctOptionIndex: 0,
+        explanation: `The Civil Service Commission holds constitutional authority for recruitment, promotion, and disciplinary sanctions under Section 153 CFRN and the PSR.`,
+        referenceRule: '1999 CFRN & PSR 020101'
+      };
+    case 5:
+      return {
+        questionText: `What statutory conditions or bond execution requirements govern officers proceeding on Study Leave under ${chapterTitle}?`,
+        options: [
+          `Officers may travel overseas at will with no service obligation upon return`,
+          `Officers must have served a minimum qualifying period, obtained formal approval, and executed a legal bond to serve the government for a specified duration upon completion`,
+          `Study leave is only permitted for officers on probation`,
+          `Study leave automatically results in immediate resignation from service`
+        ],
+        correctOptionIndex: 1,
+        explanation: `PSR guidelines on study leave require fulfillment of service maturity, official sponsorship clearance, and execution of a legally binding service bond.`,
+        referenceRule: 'PSR 100236 - 100248'
+      };
+    case 6:
+      return {
+        questionText: `Under the Official Secrets Act and PSR provisions relating to ${chapterTitle}, what is the consequence of unauthorized disclosure of classified government papers?`,
+        options: [
+          `It is classified as serious misconduct warranting immediate interdiction, formal investigation, and potential dismissal with criminal prosecution`,
+          `It attracts a commendation letter for public transparency`,
+          `It is excused if the officer was not officially sworn in`,
+          `It carries only a minor verbal correction`
+        ],
+        correctOptionIndex: 0,
+        explanation: `Breach of official secrecy and unauthorized disclosure of classified records (Confidential, Secret, Top Secret) constitutes grave serious misconduct under the PSR.`,
+        referenceRule: 'Official Secrets Act & PSR 030403'
+      };
+    case 7:
+      return {
+        questionText: `Under the Code of Conduct and Chapter ${chapterNumber} of the PSR, which commercial activity is a full-time public officer constitutionally permitted to engage in?`,
+        options: [
+          `Operating a private commercial bank branch`,
+          `Farming and agricultural enterprises, subject to non-interference with official civil service duties`,
+          `Managing a private commercial transport fleet during working hours`,
+          `Serving as a paid director of a government contractor firm`
+        ],
+        correctOptionIndex: 1,
+        explanation: `The Code of Conduct (5th Schedule 1999 CFRN) and PSR prohibit public officers from engaging in trade or commercial business, with the sole exception of farming.`,
+        referenceRule: '5th Schedule CFRN & PSR 030422'
+      };
+    case 8:
+      return {
+        questionText: `How does the Performance Management System (PMS) transition modernize officer appraisal under ${chapterTitle}?`,
+        options: [
+          `By replacing confidential subjective APER ratings with clear objective Key Performance Indicators (KPIs), job contracts, and quarterly milestone reviews`,
+          `By eliminating all appraisal records across the service`,
+          `By basing promotions entirely on alphabetical order of candidate surnames`,
+          `By delegating appraisals to commercial software contractors`
+        ],
+        correctOptionIndex: 0,
+        explanation: `The Federal Civil Service transition to PMS replaces subjective annual APER forms with structured performance contracts, KPIs, and transparent quarterly appraisals.`,
+        referenceRule: 'OHCSF PMS Implementation Manual'
+      };
+    case 9:
+      return {
+        questionText: `What is the legal consequence of "Dismissal" from the Federal Public Service under ${chapterTitle}?`,
+        options: [
+          `The officer is given an immediate cash gratuity bonus and private recommendation`,
+          `Complete forfeiture of all retirement benefits, pension rights, and absolute disqualification from future government employment`,
+          `The officer continues to draw 50% monthly pension indefinitely`,
+          `Transfer to an executive board in another MDA`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Under PSR 030411, dismissal carries complete forfeiture of all terminal benefits, pension, and permanent disqualification from public office.`,
+        referenceRule: 'PSR 030411'
+      };
+    case 10:
+    default:
+      return {
+        questionText: `[Scenario GL 14 - 16 Directorate] An officer aggrieved by a promotion or seniority decision under ${chapterTitle} wishes to appeal. Through which statutory channel must the appeal be lodged pursuant to ${coreRuleRef}?`,
+        options: [
+          `Directly to public broadcast media stations`,
+          `Through the officer's Head of Department / Permanent Secretary to the Civil Service Commission within the statutory window of three (3) months`,
+          `Directly to an external political party secretariat`,
+          `By staging a peaceful protest in the office reception corridor`
+        ],
+        correctOptionIndex: 1,
+        explanation: `PSR petitions rules require that all representations be submitted through official hierarchical channels (HOD to Accounting Officer) to the Commission within 3 months.`,
+        referenceRule: 'PSR 090101 - 090207'
+      };
+  }
 }
 
+// 5. FCTA CADRES: 10 Distinct Professional Technical Question Profiles per Chapter
 function generateCadreQuestion(
   cadreId: SubjectCategory,
   categoryLabel: string,
@@ -1196,582 +1633,140 @@ function generateCadreQuestion(
   coreRuleRef: string,
   idx: number
 ): { questionText: string; options: [string, string, string, string]; correctOptionIndex: number; explanation: string; referenceRule: string } {
-  // Specialized question bank for Commercial and Trade Officer Cadre
-  if (cadreId === 'cadre_commerce') {
-    const commerceQuestions: Record<number, { q: string; opts: [string, string, string, string]; ans: number; exp: string; ref: string }[]> = {
-      1: [
-        {
-          q: 'Under the National Trade Policy, what is the core statutory mandate of Commercial and Trade Officers in domestic trade facilitation within the FCTA?',
-          opts: [
-            'Promoting competitive internal markets, facilitating seamless inter-state commodity trade, and eliminating non-tariff domestic trade barriers',
-            'Fixing unilateral ceiling prices without market intelligence surveys',
-            'Prohibiting the inter-state transit of agricultural commodities into the FCC',
-            'Operating retail market stalls directly on behalf of the administration'
-          ],
-          ans: 0,
-          exp: 'Commercial and Trade Officers are tasked with implementing trade policies, eliminating unnecessary trade bottlenecks, promoting MSME integration, and facilitating domestic commodity distribution.',
-          ref: 'National Trade Policy & FCTA Commerce Guidelines'
-        },
-        {
-          q: 'In coordinating commercial policy for the FCTA, which objective is central to establishing sustainable value chains?',
-          opts: [
-            'Strengthening backward linkages between rural agricultural producers and urban industrial/retail processors in Abuja',
-            'Imposing prohibitive inter-district haulage tariffs',
-            'Closing all traditional open markets in favor of exclusive corporate franchises',
-            'Abolishing market trade associations and artisanal guilds'
-          ],
-          ans: 0,
-          exp: 'FCTA trade policy prioritizes establishing efficient supply linkages between Area Council producers and commercial consumption centres across the Federal Capital Territory.',
-          ref: 'FCTA Domestic Trade Framework'
-        }
-      ],
-      2: [
-        {
-          q: 'Under Section 15 of the Weights and Measures Act Cap W3 LFN, what statutory power is vested in a certified Inspector of Weights and Measures?',
-          opts: [
-            'The power to enter commercial premises at all reasonable times without warrant to inspect, test, and seize false or unstamped weighing and measuring instruments',
-            'The power to confiscate bank accounts of retail shop owners without court orders',
-            'The power to manufacture custom measuring cylinders for commercial sale',
-            'The power to conduct arbitrary criminal arrests without police accompaniment'
-          ],
-          ans: 0,
-          exp: 'Section 15 of the Weights and Measures Act empowers inspectors to enter trade premises without warrant during business hours to verify and calibrate scales, weights, and measures.',
-          ref: 'Weights & Measures Act Cap W3 LFN Sec 15'
-        },
-        {
-          q: 'What is the legal implication under the Weights and Measures Act of using an unverified, uncalibrated, or counterfeit fuel dispensing pump at an FCT filling station?',
-          opts: [
-            'It constitutes a strict liability statutory offense punishable by seizure of the dispenser, closure of pumps, and prosecution with penal fines',
-            'It is classified as an excusable technical variance requiring no remedial action',
-            'It is permitted if petroleum products are sold during national holidays',
-            'It attracts a mere verbal reprimand with no record keeping'
-          ],
-          ans: 0,
-          exp: 'Using unjust or unverified measuring equipment for commercial trade is an offense under the Weights and Measures Act, carrying statutory fines, instrument confiscation, and closure of non-compliant dispensers.',
-          ref: 'Weights & Measures Act Sec 22'
-        }
-      ],
-      3: [
-        {
-          q: 'Under Section 127 of the Federal Competition and Consumer Protection Act (FCCPC 2018), what constitutes prohibited unfair trade practice?',
-          opts: [
-            'Making false, misleading, or deceptive representations regarding the origin, quality, standard, or price of consumer goods and services',
-            'Offering discounts and promotional rebates during festive periods',
-            'Displaying prices openly on commodity shelves and price boards',
-            'Providing consumers with printed purchase receipts and warranty documents'
-          ],
-          ans: 0,
-          exp: 'FCCPC Act 2018 S.127 prohibits unfair, deceptive, and fraudulent commercial practices that mislead consumers or distort free market competition.',
-          ref: 'FCCPC Act 2018 Sec 127'
-        },
-        {
-          q: 'When a consumer in Abuja purchases pre-packaged commercial goods that prove to be hazardous or fundamentally defective, what statutory remedy is guaranteed under the FCCPC Act?',
-          opts: [
-            'The right to immediate replacement, full refund of purchase price, and compensation for attendant damage or personal injury suffered',
-            'Forfeiture of claims if the receipt was not countersigned by a magistrate',
-            'Compulsory exchange only for store coupons with a 3-day expiration',
-            'Waiver of all rights once goods have left the vendor counter'
-          ],
-          ans: 0,
-          exp: 'Under Sections 130–133 of the FCCPC Act 2018, consumers are entitled to goods of merchantable quality, statutory warranties, and full refund or replacement for non-conforming goods.',
-          ref: 'FCCPC Act 2018 Sec 131'
-        }
-      ],
-      4: [
-        {
-          q: 'Under the African Continental Free Trade Area (AfCFTA) Rules of Origin, how do goods qualify for preferential duty-free access across participating member states?',
-          opts: [
-            'They must be wholly obtained or undergo substantial transformation meeting defined value-addition thresholds (e.g., minimum 35% local value addition)',
-            'They must be imported from outside Africa and transshipped through an African seaport',
-            'They must bear a foreign multinational trademark regardless of processing location',
-            'They must be traded exclusively between government-owned parastatals'
-          ],
-          ans: 0,
-          exp: 'AfCFTA Rules of Origin require products to be wholly obtained or substantially transformed within member states with verified local value addition to prevent trade deflection.',
-          ref: 'AfCFTA Protocol on Trade in Goods'
-        },
-        {
-          q: 'What is the role of the FCTA AfCFTA Implementation Committee in trade expansion?',
-          opts: [
-            'Sensitizing local manufacturers and MSMEs in the FCT on continental standards, export packaging, and tariff schedules under the trade corridor',
-            'Imposing transit embargoes on goods moving between neighbouring states',
-            'Issuing private diplomatic passports to commercial exporters',
-            'Fixing exchange rates for cross-border transactions'
-          ],
-          ans: 0,
-          exp: 'The FCTA AfCFTA Committee coordinates with national bodies to build local export capacity, audit industrial readiness, and facilitate access to continental markets.',
-          ref: 'FCTA AfCFTA Action Plan'
-        }
-      ],
-      5: [
-        {
-          q: 'What is the statutory role of the Abuja Enterprise Agency (AEA) within the FCTA administrative architecture?',
-          opts: [
-            'Apex enterprise development vehicle responsible for MSME incubation, entrepreneurship training, micro-finance access, and business clinic support',
-            'Regulatory tribunal for issuing building approvals in commercial layouts',
-            'Corporate tax collection agency replacing the FCT Internal Revenue Service',
-            'Sole distributor of imported petroleum products across Area Councils'
-          ],
-          ans: 0,
-          exp: 'AEA was established by the FCTA to drive entrepreneurial development, foster MSME growth, provide business advisory services, and facilitate micro-credit access.',
-          ref: 'AEA Charter & FCTA Mandate'
-        },
-        {
-          q: 'According to the SMEDAN National Policy on MSMEs, what criteria define a Micro Enterprise in Nigeria?',
-          opts: [
-            'Employment of less than 10 persons and assets (excluding land and buildings) not exceeding 5 million Naira',
-            'Employment of over 500 persons with revenue exceeding 1 billion Naira',
-            'Any corporate entity registered on the Nigerian Stock Exchange',
-            'Sole proprietorships operating exclusively in banking and financial derivatives'
-          ],
-          ans: 0,
-          exp: 'SMEDAN categorizes micro enterprises as entities having fewer than 10 employees and qualifying capital assets of not more than N5 million (excluding land and building).',
-          ref: 'SMEDAN National MSME Policy'
-        }
-      ],
-      6: [
-        {
-          q: 'Which statutory documentation is mandatory for formal non-oil export shipments leaving Nigeria under Central Bank and NEPC guidelines?',
-          opts: [
-            'Form NXP (Nigeria Export Proceeds Form) processed via an Authorized Dealer bank and registered on the Trade Monitoring System',
-            'Form M processed for incoming foreign merchandise consignments',
-            'A handwritten invoice issued by the local market trade association',
-            'A clearance permit issued by the local Area Council vigilante commander'
-          ],
-          ans: 0,
-          exp: 'Form NXP is the mandatory electronic documentation prescribed by the CBN and NEPC for all commercial non-oil exports to ensure repatriation of export proceeds.',
-          ref: 'CBN Foreign Exchange Manual & NEPC Regulations'
-        },
-        {
-          q: 'What is the primary objective of the Export Expansion Grant (EEG) administered by the Nigerian Export Promotion Council (NEPC)?',
-          opts: [
-            'To provide post-shipment financial incentives to formal non-oil exporters to enhance price competitiveness in international markets',
-            'To subsidize the importation of luxury consumer goods into commercial hubs',
-            'To purchase imported raw materials for multinational corporations',
-            'To compensate foreign importers for domestic currency devaluation'
-          ],
-          ans: 0,
-          exp: 'The EEG scheme is a non-oil export incentive designed to assist exporters cushion infrastructural handicaps and make Nigerian non-oil exports globally competitive.',
-          ref: 'NEPC Act Cap N108 LFN'
-        }
-      ],
-      7: [
-        {
-          q: 'In the administrative management of major FCTA municipal markets (e.g., Wuse, Garki, Utako), what rule governs the transfer of shop allocations?',
-          opts: [
-            'Allocations cannot be sublet or transferred without formal written approval and reassignment by the FCTA Markets Management authority',
-            'Traders may privately auction market stalls to the highest bidder without notification',
-            'Shop tenants may alter load-bearing structural walls without municipal permits',
-            'Allocations are automatically inheritable across generations without registry updates'
-          ],
-          ans: 0,
-          exp: 'FCTA market byelaws strictly prohibit unauthorized subletting, speculative trading in government stalls, or unapproved architectural modifications.',
-          ref: 'FCTA Markets Management Byelaws'
-        },
-        {
-          q: 'Which mandatory safety compliance measure must Commercial Officers enforce in retail markets to mitigate fire outbreaks?',
-          opts: [
-            'Enforcing unobstructed access lanes for emergency vehicles, functional fire hydrants, and routine verification of certified fire extinguishers',
-            'Permitting open cooking fires and petroleum storage inside lock-up shops',
-            'Locking market perimeter gates permanently during business hours',
-            'Allowing illegal electrical wire tapping from commercial overhead lines'
-          ],
-          ans: 0,
-          exp: 'Commercial and Trade Officers ensure market safety by inspecting emergency egress routes, verifying fire protection equipment, and curbing hazardous electrical wiring.',
-          ref: 'FCTA Public Safety Standards'
-        }
-      ],
-      8: [
-        {
-          q: 'Under the Business Premises Registration laws operating in the Federal Capital Territory, when must a newly established commercial enterprise register its premises?',
-          opts: [
-            'Within thirty (30) days of commencing commercial business activities on the premises',
-            'Only after ten consecutive years of profitable commercial trading',
-            'Within 24 hours of printing business calling cards',
-            'Only if the enterprise has more than 1,000 corporate shareholders'
-          ],
-          ans: 0,
-          exp: 'Business Premises Registration statutes require every person or corporate body carrying on business in the FCT to register the premises within 30 days of commencement.',
-          ref: 'FCT Business Premises Registration Act'
-        },
-        {
-          q: 'What is the purpose of the annual renewal certificate issued under the Business Premises Registration Act?',
-          opts: [
-            'To verify continuous lawful commercial occupation, update commercial registers, and ensure statutory revenue compliance',
-            'To grant absolute immunity from environmental sanitation inspections',
-            'To replace the requirement for corporate income tax filing with FCT-IRS',
-            'To serve as an official land title (Certificate of Occupancy)'
-          ],
-          ans: 0,
-          exp: 'Annual renewal confirms compliance with FCT commerce standards, verifies business location data, and certifies that statutory administrative levies have been paid.',
-          ref: 'FCTA Commerce Licensing Guidelines'
-        }
-      ],
-      9: [
-        {
-          q: 'Under the Trademarks Act Cap T13 LFN, what is the primary legal benefit of registering a trade name or mark with the Federal Registry?',
-          opts: [
-            'It confers statutory monopoly and the exclusive right to use the mark, including the legal right to institute infringement actions in the Federal High Court',
-            'It exempts the trademark owner from all corporate taxes in Nigeria',
-            'It grants automatic diplomatic immunity to the corporate directors',
-            'It eliminates the need for product quality testing by regulatory authorities'
-          ],
-          ans: 0,
-          exp: 'Registration of a trademark under Cap T13 LFN gives the proprietor the exclusive right to the use of the trademark in relation to those goods and statutory remedies for infringement.',
-          ref: 'Trademarks Act Cap T13 LFN Sec 5'
-        },
-        {
-          q: 'How does the Merchandise Marks Act protect consumers and commercial manufacturers against unfair trade practices?',
-          opts: [
-            'By penalizing the application of false trade descriptions, forged trademarks, and deceptive indications of origin on consumer commodities',
-            'By standardizing retail shelf prices across all supermarket chains',
-            'By requiring all imported goods to be relabeled in indigenous languages',
-            'By prohibiting commercial advertising on television and radio'
-          ],
-          ans: 0,
-          exp: 'The Merchandise Marks Act prohibits forged trademarks and deceptive trade descriptions applied to goods, protecting consumers from counterfeit and substandard products.',
-          ref: 'Merchandise Marks Act Cap M10 LFN'
-        }
-      ],
-      10: [
-        {
-          q: 'What is the core methodology utilized by Commercial Officers in conducting routine Commodity Price Intelligence Surveys in the FCT?',
-          opts: [
-            'Structured sampling of retail and wholesale prices across designated market clusters, recording price indices, and identifying supply variance drivers',
-            'Estimating commodity prices from television commercials without market visits',
-            'Collecting verbal rumors from transport motor park touts',
-            'Replicating historical price tables from the preceding decade without field data'
-          ],
-          ans: 0,
-          exp: 'Price intelligence requires objective field data collection from wholesale and retail traders across Area Councils to analyze food inflation trends and commodity availability.',
-          ref: 'FMITI Market Surveillance Manual'
-        },
-        {
-          q: 'What administrative action should a Commercial Officer take when an artificial food shortage or deliberate commodity hoarding is detected in an FCT market?',
-          opts: [
-            'Compile an empirical intelligence report detailing price spikes, warehouse inventory levels, and forward findings to the Directorate and regulatory authorities',
-            'Unilaterally break into private warehouses and distribute commodities without legal warrant',
-            'Conceal the intelligence to avoid causing administrative concern',
-            'Instruct traders to double their prices immediately'
-          ],
-          ans: 0,
-          exp: 'The officer must prepare an objective, verifiable surveillance brief documenting the inventory anomaly and report through official channels to initiate regulatory interventions.',
-          ref: 'Commerce Field Inspection Standard'
-        }
-      ],
-      11: [
-        {
-          q: 'Under the General Agreement on Tariffs and Trade (GATT) Article I, what does the Most-Favoured-Nation (MFN) principle require of member states?',
-          opts: [
-            'Any trade concession or advantage granted to products originating in one member nation must be immediately and unconditionally accorded to like products of all members',
-            'Special trade subsidies must only be extended to neighboring landlocked nations',
-            'Tariffs on agricultural imports must be raised annually by 20%',
-            'Member nations must ban commercial imports from non-English speaking nations'
-          ],
-          ans: 0,
-          exp: 'GATT Article I establishes the MFN principle: unconditional non-discrimination where trade advantages given to one country must be extended to all WTO member states.',
-          ref: 'GATT 1994 Article I'
-        },
-        {
-          q: 'What does the National Treatment principle under GATT Article III mandate regarding internal taxes and regulations?',
-          opts: [
-            'Imported goods, once cleared through customs, must not be subjected to internal taxes or domestic regulations higher or more burdensome than those applied to domestic goods',
-            'Domestic goods must be taxed at three times the rate of imported foreign goods',
-            'Foreign merchants must be given exclusive retail monopoly over domestic markets',
-            'All imported goods must be sold at half the cost of locally manufactured items'
-          ],
-          ans: 0,
-          exp: 'National Treatment requires that foreign imported products receive no less favorable treatment than domestic like products in domestic taxation and regulations.',
-          ref: 'GATT 1994 Article III'
-        }
-      ],
-      12: [
-        {
-          q: 'What is the function of the Electronic Form M in Nigerian import trade transactions administered by the Central Bank of Nigeria?',
-          opts: [
-            'The statutory declaration of intention to import physical goods into Nigeria, mandatory for opening letters of credit and obtaining foreign exchange allocation',
-            'A customs document used exclusively for tracking non-commercial personal luggage',
-            'A receipt issued by shipping lines after containers are offloaded at seaports',
-            'An environmental tax clearance certificate issued by the Area Council'
-          ],
-          ans: 0,
-          exp: 'Form M is the mandatory initial document required by the CBN and Nigeria Customs Service for all commercial imports into Nigeria prior to shipment of goods.',
-          ref: 'CBN Trade and Exchange Manual'
-        },
-        {
-          q: 'What is the role of the Pre-Arrival Assessment Report (PAAR) in customs commercial clearance procedures?',
-          opts: [
-            'A computerized advisory document issued by Customs determining tariff classification, valuation, and duty assessment to expedite destination clearance',
-            'A physical passport visa issued to crew members of commercial cargo vessels',
-            'A bill of sale given to retail consumers at commercial supermarkets',
-            'A certificate showing that import containers have been dumped at sea'
-          ],
-          ans: 0,
-          exp: 'PAAR is generated by the Nigeria Customs Service based on final shipping documents to guide the assessment and collection of appropriate import duties.',
-          ref: 'Nigeria Customs Service PAAR Guidelines'
-        }
-      ],
-      13: [
-        {
-          q: 'Under the Nigerian Investment Promotion Commission (NIPC) Act Cap N117 LFN, what guarantee is provided to commercial investors regarding enterprise ownership?',
-          opts: [
-            'Non-Nigerians may invest and participate in the operation of any enterprise in Nigeria, with 100% foreign equity participation permitted (except items on the negative list)',
-            'Foreign investors are prohibited from owning more than 10% equity in any enterprise',
-            'All commercial businesses must be owned entirely by the Federal Government',
-            'Only domestic cooperative societies are permitted to operate retail stores'
-          ],
-          ans: 0,
-          exp: 'The NIPC Act liberalized investment in Nigeria, allowing 100% foreign ownership in all sectors except the negative list (arms, narcotics, military wear).',
-          ref: 'NIPC Act Cap N117 LFN Sec 17 - 18'
-        },
-        {
-          q: 'What is the purpose of the One-Stop Investment Centre (OSIC) established under the NIPC and supported by FCTA?',
-          opts: [
-            'Co-locating relevant government regulatory agencies under one roof to streamline business approvals, registrations, permits, and tax documentation for investors',
-            'Operating a single retail warehouse for selling subsidized agricultural produce',
-            'Centralizing commercial dispute litigation in a single magistrate court',
-            'Serving as the sole commercial bank for currency exchange in Abuja'
-          ],
-          ans: 0,
-          exp: 'OSIC brings together various regulatory agencies (CAC, NAFDAC, SON, Immigration, FCTA) to shorten the time required to establish commercial enterprises in Nigeria.',
-          ref: 'NIPC OSIC Operational Manual'
-        }
-      ],
-      14: [
-        {
-          q: 'When organizing the FCTA commercial pavilion for the annual Abuja International Trade Fair, what is the primary duty of the Commercial Officer?',
-          opts: [
-            'Curating authentic FCT-made enterprise exhibits, facilitating B2B trade linkages, coordinating business delegations, and evaluating commercial ROI metrics',
-            'Selling consumer snacks and soft drinks for personal remuneration',
-            'Restricting fair access to multinational conglomerate executives only',
-            'Dismantling enterprise exhibition booths prior to fair opening ceremonies'
-          ],
-          ans: 0,
-          exp: 'Commercial Officers organize exhibitions to project FCT economic potentials, connect local MSME producers with domestic/international buyers, and track trade leads.',
-          ref: 'FCTA Commercial Promotion Manual'
-        },
-        {
-          q: 'Following the conclusion of an international trade expo or trade mission, what statutory administrative report must the Commercial Officer prepare?',
-          opts: [
-            'A comprehensive Post-Fair Evaluation Report detailing business contacts established, export contracts negotiated, trade inquiries, and strategic policy recommendations',
-            'A financial statement claiming reimbursement without submitting verified receipts',
-            'A summary statement with no quantitative data or attendee records',
-            'A brief indicating that trade fairs have no impact on territorial commerce'
-          ],
-          ans: 0,
-          exp: 'A post-fair evaluation report is mandatory to measure economic impact, track trade agreements signed, and provide recommendations for upcoming trade facilitation exercises.',
-          ref: 'Trade Mission Standard Operating Procedures'
-        }
-      ],
-      15: [
-        {
-          q: 'Under the Nigerian Cooperative Societies Act Cap N98 LFN, what is the minimum statutory membership required to register a Primary Cooperative Society?',
-          opts: [
-            'At least ten (10) persons who have attained the age of eighteen years and reside within the area of operations',
-            'A minimum of one thousand corporate directors',
-            'Exactly two business partners',
-            'At least fifty registered commercial banks'
-          ],
-          ans: 0,
-          exp: 'Section 2 of the Nigerian Cooperative Societies Act requires at least 10 qualified individuals to establish and register a primary cooperative society.',
-          ref: 'Nigeria Cooperative Societies Act Cap N98 LFN'
-        },
-        {
-          q: 'How does the formalization of roadside informal traders into registered Cooperative Thrift and Credit Societies advance economic governance in the FCT?',
-          opts: [
-            'By pooling micro-capital, facilitating access to formal credit and government grants, eliminating usurious informal lending, and expanding the revenue tax base',
-            'By exempting members from all sanitation and environmental regulations',
-            'By enabling informal traders to occupy road medians permanently',
-            'By eliminating the need to maintain commercial financial accounts'
-          ],
-          ans: 0,
-          exp: 'Cooperative societies enable small traders to accumulate savings, access institutional financing, improve business literacy, and operate within lawful commercial corridors.',
-          ref: 'FCTA Cooperative Promotion Guidelines'
-        }
-      ],
-      16: [
-        {
-          q: 'Under the FCCPC Guidelines on Online Transactions and Digital Marketplaces, what mandatory disclosure must e-commerce operators provide to consumers?',
-          opts: [
-            'Accurate and conspicuous disclosure of vendor corporate identity, physical business address, complete pricing including shipping fees, and return/refund terms',
-            'A declaration that online sales are final with no right of return under any condition',
-            'A requirement that consumers waive all data privacy rights prior to checkout',
-            'An arbitrary conversion of product prices to foreign currency at checkout'
-          ],
-          ans: 0,
-          exp: 'Consumer protection regulations mandate digital retail platforms to disclose merchant identity, total costs, terms of warranty, and clear cancellation/refund procedures.',
-          ref: 'FCCPC E-Commerce Consumer Guidelines'
-        },
-        {
-          q: 'What is the statutory right of an online consumer in the FCT who receives goods that do not correspond with the seller description on a digital retail app?',
-          opts: [
-            'The right to reject the delivery, return the items at the merchant expense, and receive a full reimbursement within statutory timeframes',
-            'The consumer is legally obliged to retain and pay extra for the incorrect goods',
-            'The consumer must forfeit both the money paid and the goods delivered',
-            'The consumer can only seek redress by filing a petition before the National Assembly'
-          ],
-          ans: 0,
-          exp: 'Under consumer protection laws, goods delivered must correspond strictly to sample and description; non-conforming goods entitle the buyer to immediate return and refund.',
-          ref: 'FCCPC Act 2018 Sec 122 - 124'
-        }
-      ],
-      17: [
-        {
-          q: 'What is the primary function of the Mandatory Conformity Assessment Programme (MANCAP) administered by the Standards Organisation of Nigeria (SON)?',
-          opts: [
-            'Ensuring that all locally manufactured products in Nigeria comply with relevant Nigerian Industrial Standards (NIS) before being offered for commercial sale',
-            'Regulating the wholesale prices of imported petroleum lubricants',
-            'Issuing building permits for industrial factory construction',
-            'Providing corporate loans to multinational mining enterprises'
-          ],
-          ans: 0,
-          exp: 'MANCAP is a mandatory product certification scheme put in place by SON to ensure that all locally manufactured products conform to the relevant Nigerian Industrial Standards.',
-          ref: 'Standards Organisation of Nigeria (SON) Act 2015'
-        },
-        {
-          q: 'What is the regulatory status of imported commercial goods entering the FCT markets without a valid SONCAP (SON Conformity Assessment Programme) certificate?',
-          opts: [
-            'They are classified as non-conforming substandard imports liable to seizure, confiscation, and destruction at the importer expense with penal prosecution',
-            'They are granted express customs clearance with no inspection',
-            'They are awarded export expansion grants by the commercial department',
-            'They are exempted from all product liability laws'
-          ],
-          ans: 0,
-          exp: 'SONCAP certification is mandatory for regulated imports; goods entering without it are considered substandard, subject to seizure and forfeiture under the SON Act.',
-          ref: 'SONCAP Import Guidelines & SON Act 2015'
-        }
-      ],
-      18: [
-        {
-          q: 'Under the NAFDAC Act Cap N1 LFN, what statutory requirement must commercial wholesalers satisfy before distributing packaged foods, beverages, or cosmetics in FCT markets?',
-          opts: [
-            'Each product line must possess a valid, verifiable NAFDAC Registration Number and comply with approved labeling, storage, and traceability protocols',
-            'Products need only a handwritten certificate from a local community elder',
-            'Wholesalers may repackage unbranded bulk chemicals into food containers without testing',
-            'NAFDAC registration is only required for goods sold on Sundays'
-          ],
-          ans: 0,
-          exp: 'The NAFDAC Act prohibits the manufacture, sale, or distribution of regulated consumer products without prior testing and issuance of a valid NAFDAC Registration Number.',
-          ref: 'NAFDAC Act Cap N1 LFN Sec 1'
-        },
-        {
-          q: 'What collaborative role do Commercial Officers perform during joint market surveillance operations targeting counterfeit or expired consumer goods?',
-          opts: [
-            'Assisting regulatory inspectors in identifying compromised storage depots, securing chain of custody of exhibits, and logging commercial documentation for enforcement actions',
-            'Alerting delinquent shopkeepers prior to inspection raids so they can relocate contraband',
-            'Confiscating consumer goods for private home consumption by inspection staff',
-            'Selling seized counterfeit pharmaceuticals at discounted rates to market shoppers'
-          ],
-          ans: 0,
-          exp: 'Commercial Officers assist regulatory and enforcement agencies by conducting market profiling, logging inventory trails, and enforcing compliance standards transparently.',
-          ref: 'Joint Market Surveillance SOP'
-        }
-      ],
-      19: [
-        {
-          q: 'Under the Arbitration and Mediation Act 2023, what is a key advantage of mediation for commercial retail disputes in the FCT?',
-          opts: [
-            'It provides a speedy, cost-effective, confidential dispute resolution forum that preserves commercial business partnerships and yields a legally binding settlement agreement',
-            'It guarantees that the losing party must be sent to correctional custody',
-            'It allows the mediator to unilaterally take ownership of the merchant inventory',
-            'It requires all disputes to be broadcast live on national radio'
-          ],
-          ans: 0,
-          exp: 'Mediation under the 2023 Act facilitates amicable, confidential settlements that preserve commercial relationships, reduce court docket congestion, and produce enforceable terms.',
-          ref: 'Arbitration & Mediation Act 2023'
-        },
-        {
-          q: 'Under Nigerian commercial law, what constitutes an enforceable arbitral award rendered in a commercial contract dispute?',
-          opts: [
-            'A written final award rendered by a duly constituted arbitral tribunal, which upon application to the High Court is recognized and enforced as a court judgment',
-            'A verbal opinion expressed by an uncertified onlooker during a trade argument',
-            'A unilateral letter written by a debtor promising to pay in twenty years',
-            'A press release issued by an unregistered trade union'
-          ],
-          ans: 0,
-          exp: 'An arbitral award made in accordance with the Arbitration Act is final and binding on the parties and is enforceable upon formal registration with the competent court.',
-          ref: 'Arbitration and Mediation Act 2023 Sec 57'
-        }
-      ],
-      20: [
-        {
-          q: 'According to the Federal Scheme of Service, what is the statutory career progression hierarchy for the Commercial and Trade Officer Cadre?',
-          opts: [
-            'Commercial Officer II (GL 08) → Commercial Officer I (GL 09) → Senior Commercial Officer (GL 10) → Principal Commercial Officer (GL 12) → Assistant Chief Commercial Officer (GL 13) → Chief Commercial Officer (GL 14) → Assistant Director (GL 14/15) → Deputy Director (GL 16) → Director of Commerce (GL 17)',
-            'Clerical Assistant (GL 01) directly to Director of Commerce (GL 17) in one step',
-            'Commercial Officer (GL 08) with no promotion prospects beyond GL 09',
-            'Chief Commercial Officer (GL 06) to Administrative Officer (GL 10)'
-          ],
-          ans: 0,
-          exp: 'The Scheme of Service establishes clear promotional stages based on statutory maturity periods, annual performance evaluations (APER/PMS), and written/oral promotion examinations.',
-          ref: 'Federal Scheme of Service & Public Service Rules'
-        },
-        {
-          q: 'In drafting an Executive Council Policy Memorandum on FCT Commercial Modernization, what mandatory section must a Directorate Commercial Officer articulate?',
-          opts: [
-            'Clear statement of problem, policy objectives, financial/revenue implications, stakeholder consultation outcomes, and specific prayers for approval',
-            'Personal grievances regarding office furniture and private allowances',
-            'A transcript of unverified social media commentary regarding market retail prices',
-            'A request for summary suspension of all private retail businesses in the territory'
-          ],
-          ans: 0,
-          exp: 'Council and Ministerial memoranda must strictly adhere to the civil service structure: Introduction, Background, Policy Objectives, Financial Implications, Recommendations, and Prayers.',
-          ref: 'Administrative Drafting Manual & Cabinet Guidelines'
-        }
-      ]
-    };
-
-    const chapterSeeds = commerceQuestions[chapterNumber];
-    if (chapterSeeds && chapterSeeds.length > 0) {
-      const selected = chapterSeeds[(idx - 1) % chapterSeeds.length];
+  // 10 Distinct Professional Technical Question Formats for every cadre chapter
+  switch (idx) {
+    case 1:
       return {
-        questionText: `${selected.q} [Module ${chapterNumber} Q${idx}]`,
-        options: selected.opts,
-        correctOptionIndex: selected.ans,
-        explanation: selected.exp,
-        referenceRule: selected.ref
+        questionText: `In the professional execution of duties within the ${categoryLabel}, what is the statutory standard required under ${chapterTitle}?`,
+        options: [
+          `Full technical compliance with professional standards, standard operating procedures, and civil service directives pursuant to ${coreRuleRef}`,
+          `Unilateral modification of specifications without supervisory or engineering concurrence`,
+          `Discarding verified audit trails to hasten routine paperwork processing`,
+          `Delegating statutory sign-off to non-certificated external personnel`
+        ],
+        correctOptionIndex: 0,
+        explanation: `Officers of the ${categoryLabel} are required to master standard operating procedures, technical ethics, and statutory guidelines governing ${chapterTitle}.`,
+        referenceRule: coreRuleRef
       };
-    }
+    case 2:
+      return {
+        questionText: `When handling official documentation and technical reports in ${chapterTitle}, which regulatory guideline must a ${categoryLabel} officer strictly observe?`,
+        options: [
+          `Preparing unverified summary estimates with no supporting physical evidence`,
+          `Conducting objective data validation, referencing approved standards under ${coreRuleRef}, and adhering to civil service reporting formats`,
+          `Disclosing internal draft technical findings on public social media forums`,
+          `Filing technical papers only when requested by commercial third parties`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Documentation in the ${categoryLabel} requires rigorous technical validation, audit trails, and adherence to official reporting standards under ${coreRuleRef}.`,
+        referenceRule: coreRuleRef
+      };
+    case 3:
+      return {
+        questionText: `Under FCTA operational standards for the ${categoryLabel}, what is the correct procedural action when an operational discrepancy or hazard occurs under ${chapterTitle}?`,
+        options: [
+          `Ignoring the discrepancy until discovered by external audit inspectors`,
+          `Documenting the incident in the official log, notifying the Head of Division in writing, and applying emergency containment in line with ${coreRuleRef}`,
+          `Verbally blaming subordinate junior personnel without conducting an investigation`,
+          `Altering the historical maintenance logs to conceal the occurrence`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Officers must log incidents immediately, issue written notice to supervisory authority, and execute containment procedures pursuant to ${coreRuleRef}.`,
+        referenceRule: coreRuleRef
+      };
+    case 4:
+      return {
+        questionText: `How does effective technical performance in ${chapterTitle} by the ${categoryLabel} advance the implementation of the Abuja Master Plan?`,
+        options: [
+          `By upholding professional competence, timely service delivery, and strict adherence to statutory infrastructure and governance standards under ${coreRuleRef}`,
+          `By approving unauthorized land conversions in green conservation belts`,
+          `By encouraging arbitrary construction without municipal building permits`,
+          `By withholding vital public utility reports from coordinating secretariats`
+        ],
+        correctOptionIndex: 0,
+        explanation: `Professional competence in the ${categoryLabel} ensures infrastructure resilience, municipal compliance, and orderly development of the Federal Capital Territory.`,
+        referenceRule: coreRuleRef
+      };
+    case 5:
+      return {
+        questionText: `Which statutory clearance, verification, or permit must a ${categoryLabel} officer validate before authorizing technical operations under ${chapterTitle}?`,
+        options: [
+          `An unverified handwritten note from a commercial supplier`,
+          `Statutory compliance certification, approved design drawings, and formal endorsement by the designated authority under ${coreRuleRef}`,
+          `A personal verbal assurance from a junior site artisan`,
+          `An expired commercial invoice from a neighbouring jurisdiction`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Technical operations require formal verification of permits, engineering specifications, and statutory regulatory approvals under ${coreRuleRef}.`,
+        referenceRule: coreRuleRef
+      };
+    case 6:
+      return {
+        questionText: `In coordinating operational workflows for ${chapterTitle}, how should the ${categoryLabel} maintain effective inter-departmental synergy across the FCTA?`,
+        options: [
+          `Operating in complete administrative isolation without notifying common service departments`,
+          `Establishing formal inter-secretariat communication channels, sharing verified technical data, and aligning with common administrative circulars under ${coreRuleRef}`,
+          `Rejecting technical inputs from related engineering and legal secretariats`,
+          `Disregarding FCTA Executive Committee policy directives`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Inter-secretariat synergy requires structured communication, horizontal coordination, and shared adherence to FCTA policy guidelines under ${coreRuleRef}.`,
+        referenceRule: coreRuleRef
+      };
+    case 7:
+      return {
+        questionText: `What ethical principle must a ${categoryLabel} officer uphold when evaluating contractor submissions or technical specifications under ${chapterTitle}?`,
+        options: [
+          `Absolute technical impartiality, avoidance of conflict of interest, and zero acceptance of gratifications pursuant to the Code of Conduct and ${coreRuleRef}`,
+          `Awarding priority technical ratings to affiliated family enterprises`,
+          `Accepting personal financial commissions from shortlisted bidding vendors`,
+          `Modifying technical benchmarks after bid submission to favor select firms`
+        ],
+        correctOptionIndex: 0,
+        explanation: `The Code of Conduct and civil service ethics require strict professional objectivity, transparency, and elimination of personal pecuniary interest.`,
+        referenceRule: 'Code of Conduct & PSR 030402'
+      };
+    case 8:
+      return {
+        questionText: `In drafting an Executive Directorate Memorandum on ${chapterTitle}, which structural component is mandatory for a senior ${categoryLabel} officer?`,
+        options: [
+          `A vague narrative containing unsupported personal complaints`,
+          `A structured memorandum outlining the Problem, Background, Statutory Justification, Financial Implications, and Specific Prayers for Approval under ${coreRuleRef}`,
+          `A compilation of unverified social media commentary`,
+          `A unilateral request to suspend all public service rules for that division`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Council and ministerial memoranda must adhere to standard civil service structure: Background, Justification, Financial Implications, and Prayers.`,
+        referenceRule: 'Cabinet Guidelines & Administrative Drafting Manual'
+      };
+    case 9:
+      return {
+        questionText: `What quality assurance protocol must a ${categoryLabel} officer enforce during routine field inspections relating to ${chapterTitle}?`,
+        options: [
+          `Conducting spot measurements, verifying material compliance against approved benchmarks, and filing formal inspection log reports pursuant to ${coreRuleRef}`,
+          `Signing inspection certificates from the office without visiting field locations`,
+          `Approving sub-standard materials to hasten contractor invoice clearing`,
+          `Delegating inspection sign-offs to unaccredited external casual workers`
+        ],
+        correctOptionIndex: 0,
+        explanation: `Quality assurance demands physical verification, material testing against standards, and detailed inspection log entries under ${coreRuleRef}.`,
+        referenceRule: coreRuleRef
+      };
+    case 10:
+    default:
+      return {
+        questionText: `[Technical Scenario GL 14 - 16] A major technical dispute arises regarding contract execution under ${chapterTitle}. How should a senior ${categoryLabel} officer resolve the matter lawfully?`,
+        options: [
+          `Recommend unilateral breach of contract without legal unit consultation`,
+          `Review the contract terms, convene a technical reconciliation meeting with verified logs, and submit recommendations to the Accounting Officer under ${coreRuleRef}`,
+          `Encourage physical confrontation on the project site`,
+          `Surrender all government rights without seeking administrative redress`
+        ],
+        correctOptionIndex: 1,
+        explanation: `Statutory dispute resolution in civil service contracts requires documented technical review, legal consultation, and formal escalation to the Accounting Officer.`,
+        referenceRule: coreRuleRef
+      };
   }
-
-  // Generic cadre questions covering technical competencies
-  const cadrePrompts = [
-    {
-      q: `In the professional execution of duties within the ${categoryLabel}, what is the statutory standard required under ${chapterTitle}?`,
-      ans: 0,
-      exp: `Officers of the ${categoryLabel} are required to master standard operating procedures, technical ethics, and statutory guidelines governing ${chapterTitle}.`
-    },
-    {
-      q: `When handling official documentation and technical reports in ${chapterTitle}, which regulatory guideline must a ${categoryLabel} officer strictly observe?`,
-      ans: 0,
-      exp: `Documentation requires objective data validation, reference to ${coreRuleRef}, and adherence to civil service reporting formats.`
-    },
-    {
-      q: `Under FCTA operational standards for the ${categoryLabel}, what is the correct procedural action when an operational discrepancy or hazard occurs under ${chapterTitle}?`,
-      ans: 0,
-      exp: `The officer must document the incident in the official log, notify the Head of Division in writing, and apply emergency containment in line with ${coreRuleRef}.`
-    },
-    {
-      q: `How does effective performance in ${chapterTitle} contribute to the overall realization of the Abuja Master Plan and FCTA service delivery?`,
-      ans: 0,
-      exp: `By upholding professional competence, timely service delivery, and strict adherence to statutory standards under ${coreRuleRef}.`
-    }
-  ];
-
-  const chosen = cadrePrompts[(idx - 1) % cadrePrompts.length];
-
-  return {
-    questionText: `${chosen.q} [Module ${chapterNumber} Question ${idx}]`,
-    options: [
-      `Full technical compliance with professional standards and civil service directives pursuant to ${coreRuleRef}`,
-      `Unilateral modification of specifications without engineering or supervisory concurrence`,
-      `Discarding audit trails to hasten paperwork processing`,
-      `Delegating statutory sign-off to non-certificated external personnel`
-    ],
-    correctOptionIndex: 0,
-    explanation: chosen.exp,
-    referenceRule: `${coreRuleRef}`
-  };
 }
 
 // Master Question Bank Repository
@@ -1789,7 +1784,7 @@ class QuestionBankRepository {
       const qList = generateQuestionsForChapter('psr', 'Public Service Rules (PSR)', c.chapterNumber, c.title, c.coreRuleOrActRef);
       psrQuestions.push(...qList);
     });
-    this.cache.set('psr', psrQuestions);
+    this.cache.set('psr', deduplicateQuestions(psrQuestions));
 
     // 2. FR: 20 chapters x 10 questions = 200
     const frQuestions: Question[] = [];
@@ -1797,7 +1792,7 @@ class QuestionBankRepository {
       const qList = generateQuestionsForChapter('fr', 'Financial Regulations (FR)', c.chapterNumber, c.title, c.coreRuleOrActRef);
       frQuestions.push(...qList);
     });
-    this.cache.set('fr', frQuestions);
+    this.cache.set('fr', deduplicateQuestions(frQuestions));
 
     // 3. PPA: 20 chapters x 10 questions = 200
     const ppaQuestions: Question[] = [];
@@ -1805,7 +1800,7 @@ class QuestionBankRepository {
       const qList = generateQuestionsForChapter('ppa', 'Public Procurement Act (PPA 2007)', c.chapterNumber, c.title, c.coreRuleOrActRef);
       ppaQuestions.push(...qList);
     });
-    this.cache.set('ppa', ppaQuestions);
+    this.cache.set('ppa', deduplicateQuestions(ppaQuestions));
 
     // 4. FCT General Knowledge: 20 chapters x 10 questions = 200
     const fctQuestions: Question[] = [];
@@ -1813,7 +1808,7 @@ class QuestionBankRepository {
       const qList = generateQuestionsForChapter('fct_gk', 'FCT General Knowledge', c.chapterNumber, c.title, c.coreRuleOrActRef);
       fctQuestions.push(...qList);
     });
-    this.cache.set('fct_gk', fctQuestions);
+    this.cache.set('fct_gk', deduplicateQuestions(fctQuestions));
 
     // 5. FCTA Cadres: 20 chapters x 10 questions = 200 per cadre
     FCTA_CADRES.forEach((cadre) => {
@@ -1823,15 +1818,22 @@ class QuestionBankRepository {
         const qList = generateQuestionsForChapter(cadre.id, cadre.name, c.chapterNumber, c.title, c.coreRuleOrActRef);
         cadreQuestions.push(...qList);
       });
-      this.cache.set(cadre.id, cadreQuestions);
+      this.cache.set(cadre.id, deduplicateQuestions(cadreQuestions));
     });
 
     // 6. Integrate High-Yield Level 3 Directorate Examination Questions (GL 14 - GL 16)
     LEVEL_3_DIRECTORATE_QUESTIONS.forEach((l3q) => {
       const catList = this.cache.get(l3q.category);
       if (catList) {
-        catList.unshift(l3q);
+        // Prepend without creating duplicates
+        const updated = deduplicateQuestions([l3q, ...catList]);
+        this.cache.set(l3q.category, updated);
       }
+    });
+
+    // Final integrity pass: Ensure all pools in cache are 100% deduplicated
+    this.cache.forEach((list, key) => {
+      this.cache.set(key, deduplicateQuestions(list));
     });
   }
 
@@ -1844,22 +1846,26 @@ class QuestionBankRepository {
   }
 
   public getQuestionsByCategory(category: string): Question[] {
-    return this.cache.get(category) || [];
+    const list = this.cache.get(category) || [];
+    return deduplicateQuestions(list);
   }
 
   public getQuestionsByChapter(category: string, chapterNumber: number): Question[] {
     const questions = this.cache.get(category) || [];
-    return questions.filter((q) => q.chapterNumber === chapterNumber);
+    const chapterQuestions = questions.filter((q) => q.chapterNumber === chapterNumber);
+    return deduplicateQuestions(chapterQuestions);
   }
 
   public getMixedMockExamQuestions(cadreId: string, count: number = 60): Question[] {
     // Balanced distribution for promotion exam:
     // PSR (25%), FR (20%), PPA (15%), FCT General Knowledge (15%), Cadre Specific (25%)
-    const psrPool = this.cache.get('psr') || [];
-    const frPool = this.cache.get('fr') || [];
-    const ppaPool = this.cache.get('ppa') || [];
-    const fctPool = this.cache.get('fct_gk') || [];
-    const cadrePool = this.cache.get(cadreId) || this.cache.get('cadre_admin') || [];
+    const psrPool = this.getQuestionsByCategory('psr');
+    const frPool = this.getQuestionsByCategory('fr');
+    const ppaPool = this.getQuestionsByCategory('ppa');
+    const fctPool = this.getQuestionsByCategory('fct_gk');
+    const cadrePool = this.getQuestionsByCategory(cadreId).length > 0
+      ? this.getQuestionsByCategory(cadreId)
+      : this.getQuestionsByCategory('cadre_admin');
 
     const numPSR = Math.round(count * 0.25);
     const numFR = Math.round(count * 0.20);
@@ -1869,10 +1875,10 @@ class QuestionBankRepository {
 
     const sample = (arr: Question[], n: number) => {
       const shuffled = [...arr].sort(() => 0.5 - Math.random());
-      return shuffled.slice(0, n);
+      return deduplicateQuestions(shuffled).slice(0, n);
     };
 
-    const combined = [
+    const combined: Question[] = [
       ...sample(psrPool, numPSR),
       ...sample(frPool, numFR),
       ...sample(ppaPool, numPPA),
@@ -1880,7 +1886,11 @@ class QuestionBankRepository {
       ...sample(cadrePool, numCadre),
     ];
 
-    return combined.sort(() => 0.5 - Math.random());
+    // Master backfill pool if any duplicates were pruned
+    const allPool = this.getAllQuestions();
+    const finalUnique = deduplicateQuestions(combined, allPool, count);
+
+    return finalUnique.sort(() => 0.5 - Math.random()).slice(0, count);
   }
 
   public getCustomMockExamQuestions(params: {
@@ -1909,15 +1919,18 @@ class QuestionBankRepository {
       }
       if (n <= 0) return [];
       const shuffled = [...pool].sort(() => 0.5 - Math.random());
-      return shuffled.slice(0, n);
+      return deduplicateQuestions(shuffled).slice(0, n);
     };
 
-    const psrPool = this.cache.get('psr') || [];
-    const ppaPool = this.cache.get('ppa') || [];
-    const frPool = this.cache.get('fr') || [];
-    const fctPool = this.cache.get('fct_gk') || [];
-    const cadrePool = this.cache.get(cadreId) || this.cache.get('cadre_admin') || [];
+    const psrPool = this.getQuestionsByCategory('psr');
+    const ppaPool = this.getQuestionsByCategory('ppa');
+    const frPool = this.getQuestionsByCategory('fr');
+    const fctPool = this.getQuestionsByCategory('fct_gk');
+    const cadrePool = this.getQuestionsByCategory(cadreId).length > 0
+      ? this.getQuestionsByCategory(cadreId)
+      : this.getQuestionsByCategory('cadre_admin');
 
+    const totalTarget = psrCount + ppaCount + frCount + fctCount + cadreCount;
     const combined: Question[] = [];
     if (psrCount > 0) combined.push(...sample(psrPool, psrCount, selectedChapters?.psr));
     if (ppaCount > 0) combined.push(...sample(ppaPool, ppaCount, selectedChapters?.ppa));
@@ -1925,7 +1938,10 @@ class QuestionBankRepository {
     if (fctCount > 0) combined.push(...sample(fctPool, fctCount, selectedChapters?.fct_gk));
     if (cadreCount > 0) combined.push(...sample(cadrePool, cadreCount, selectedChapters?.[cadreId]));
 
-    return combined.sort(() => 0.5 - Math.random());
+    const allPool = this.getAllQuestions();
+    const finalUnique = deduplicateQuestions(combined, allPool, totalTarget);
+
+    return finalUnique.sort(() => 0.5 - Math.random()).slice(0, totalTarget);
   }
 
   public searchQuestions(query: string, category?: string): Question[] {
@@ -1934,28 +1950,30 @@ class QuestionBankRepository {
 
     let pool: Question[] = [];
     if (category && this.cache.has(category)) {
-      pool = this.cache.get(category)!;
+      pool = this.getQuestionsByCategory(category);
     } else {
-      this.cache.forEach((qs) => pool.push(...qs));
+      pool = this.getAllQuestions();
     }
 
-    return pool.filter(
+    const filtered = pool.filter(
       (q) =>
         q.questionText.toLowerCase().includes(qLower) ||
         q.chapterTitle.toLowerCase().includes(qLower) ||
         (q.referenceRule && q.referenceRule.toLowerCase().includes(qLower)) ||
         q.options.some((opt) => opt.toLowerCase().includes(qLower))
     );
+
+    return deduplicateQuestions(filtered);
   }
 
-  // Retrieve questions filtered by difficulty level (1 = GL 07-09, 2 = GL 10-13, 3 = GL 14-16)
   public getQuestionsByDifficulty(category: string, level: number = 3): Question[] {
     const pool = this.getQuestionsByCategory(category);
     const filtered = pool.filter((q) => (q.difficultyLevel || 2) === level);
-    return filtered.length > 0 ? filtered : pool;
+    const source = filtered.length > 0 ? filtered : pool;
+    return deduplicateQuestions(source);
   }
 
-  // Generate fresh, unique Level 3 (GL 14 - GL 16 Directorate Standard) questions
+  // Generate fresh, 100% unique Level 3 (GL 14 - GL 16 Directorate Standard) questions
   public generateLevel3Questions(params: {
     category: string;
     cadreId?: string;
@@ -1968,12 +1986,11 @@ class QuestionBankRepository {
     const isMixed = category === 'mixed_mock' || category === 'custom_mock';
 
     if (isMixed) {
-      // Return balanced Level 3 questions across statutory domains + cadre
-      const psrPool = (this.cache.get('psr') || []).filter((q) => !excludeSet.has(q.id));
-      const frPool = (this.cache.get('fr') || []).filter((q) => !excludeSet.has(q.id));
-      const ppaPool = (this.cache.get('ppa') || []).filter((q) => !excludeSet.has(q.id));
-      const fctPool = (this.cache.get('fct_gk') || []).filter((q) => !excludeSet.has(q.id));
-      const cadrePool = (this.cache.get(cadreId) || this.cache.get('cadre_admin') || []).filter((q) => !excludeSet.has(q.id));
+      const psrPool = this.getQuestionsByCategory('psr').filter((q) => !excludeSet.has(q.id));
+      const frPool = this.getQuestionsByCategory('fr').filter((q) => !excludeSet.has(q.id));
+      const ppaPool = this.getQuestionsByCategory('ppa').filter((q) => !excludeSet.has(q.id));
+      const fctPool = this.getQuestionsByCategory('fct_gk').filter((q) => !excludeSet.has(q.id));
+      const cadrePool = (this.getQuestionsByCategory(cadreId).length > 0 ? this.getQuestionsByCategory(cadreId) : this.getQuestionsByCategory('cadre_admin')).filter((q) => !excludeSet.has(q.id));
 
       const psrLevel3 = psrPool.filter((q) => q.difficultyLevel === 3);
       const frLevel3 = frPool.filter((q) => q.difficultyLevel === 3);
@@ -1988,7 +2005,7 @@ class QuestionBankRepository {
 
       const sample = (arr: Question[], n: number) => {
         const shuffled = [...arr].sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, n);
+        return deduplicateQuestions(shuffled).slice(0, n);
       };
 
       const combined: Question[] = [
@@ -1999,24 +2016,28 @@ class QuestionBankRepository {
         ...sample(cadrePool, numCadre),
       ];
 
-      return combined.map((q) => ({
+      const allPool = this.getAllQuestions();
+      const uniqueList = deduplicateQuestions(combined, allPool, count);
+
+      return uniqueList.map((q) => ({
         ...q,
-        difficultyLevel: 3,
+        difficultyLevel: 3 as const,
         gradeLevelCategory: 'GL 14 - GL 16'
-      })).sort(() => 0.5 - Math.random()).slice(0, count);
+      })).slice(0, count);
     }
 
     // Single category (e.g. psr, fr, ppa, fct_gk, or cadre)
-    const pool = (this.cache.get(category) || []).filter((q) => !excludeSet.has(q.id));
+    const pool = this.getQuestionsByCategory(category).filter((q) => !excludeSet.has(q.id));
     const level3Pool = pool.filter((q) => q.difficultyLevel === 3);
 
-    const sourcePool = level3Pool.length >= count ? level3Pool : (pool.length >= count ? pool : (this.cache.get(category) || []));
+    const sourcePool = level3Pool.length >= count ? level3Pool : (pool.length >= count ? pool : this.getQuestionsByCategory(category));
     const shuffled = [...sourcePool].sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, count);
+    const allPool = this.getAllQuestions();
+    const uniqueSelected = deduplicateQuestions(shuffled, allPool, count).slice(0, count);
 
-    return selected.map((q) => ({
+    return uniqueSelected.map((q) => ({
       ...q,
-      difficultyLevel: 3,
+      difficultyLevel: 3 as const,
       gradeLevelCategory: 'GL 14 - GL 16'
     }));
   }
@@ -2024,7 +2045,7 @@ class QuestionBankRepository {
   public getAllQuestions(): Question[] {
     const all: Question[] = [];
     this.cache.forEach((qs) => all.push(...qs));
-    return all;
+    return deduplicateQuestions(all);
   }
 }
 

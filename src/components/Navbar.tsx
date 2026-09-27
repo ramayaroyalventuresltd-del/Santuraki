@@ -9,7 +9,8 @@ import {
   LogOut, 
   Volume2,
   Sun,
-  Moon
+  Moon,
+  Settings
 } from 'lucide-react';
 import { ScreenRecognitionBadge } from './ScreenRecognitionBadge';
 import { useTheme } from '../context/ThemeContext';
@@ -19,6 +20,7 @@ interface NavbarProps {
   currentView: 'dashboard' | 'exam' | 'learning' | 'browse' | 'directory';
   onNavigate: (view: 'dashboard' | 'learning' | 'browse' | 'directory') => void;
   onLogout: () => void;
+  onOpenSettings?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -26,6 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentView,
   onNavigate,
   onLogout,
+  onOpenSettings,
 }) => {
   const { theme, toggleTheme, isNavyWhite } = useTheme();
 
@@ -154,6 +157,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {currentUser.fullName.charAt(0).toUpperCase()}
                 </div>
 
+                {onOpenSettings && (
+                  <button
+                    id="btn-nav-settings"
+                    onClick={onOpenSettings}
+                    title="Application Settings & Reset"
+                    className="p-2 rounded-xl text-blue-200 hover:text-white hover:bg-blue-900/70 transition-colors cursor-pointer"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </button>
+                )}
+
                 <button
                   id="btn-logout"
                   onClick={onLogout}
@@ -164,12 +178,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               </>
             ) : (
-              <div className="hidden sm:flex items-center gap-2 text-xs text-blue-200">
-                <span className="flex items-center gap-1">
-                  <Volume2 className="w-3.5 h-3.5 text-blue-300" />
-                  Voice Reader Active
-                </span>
-              </div>
+              <>
+                {onOpenSettings && (
+                  <button
+                    onClick={onOpenSettings}
+                    title="Application Settings"
+                    className="p-2 rounded-xl text-blue-200 hover:text-white hover:bg-blue-900/70 transition-colors cursor-pointer"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </button>
+                )}
+                <div className="hidden sm:flex items-center gap-2 text-xs text-blue-200">
+                  <span className="flex items-center gap-1">
+                    <Volume2 className="w-3.5 h-3.5 text-blue-300" />
+                    Voice Reader Active
+                  </span>
+                </div>
+              </>
             )}
           </div>
         </div>

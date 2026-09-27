@@ -31,7 +31,8 @@ import {
   Monitor,
   Tablet,
   Smartphone,
-  Video
+  Video,
+  Settings
 } from 'lucide-react';
 import { useScreen } from '../context/ScreenRecognitionContext';
 import { useTheme } from '../context/ThemeContext';
@@ -53,6 +54,7 @@ interface DashboardProps {
   }) => void;
   onNavigate: (view: 'learning' | 'browse' | 'directory') => void;
   onReviewPastSession?: (session: ExamSession) => void;
+  onOpenSettings?: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -60,6 +62,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onStartExam,
   onNavigate,
   onReviewPastSession,
+  onOpenSettings,
 }) => {
   const { isNavyWhite } = useTheme();
   const [isVideoManualModalOpen, setIsVideoManualModalOpen] = useState<boolean>(false);
@@ -343,6 +346,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
                 <span className="text-[10px] text-slate-400 uppercase mt-0.5">8 Min Manual</span>
               </button>
+              {onOpenSettings && (
+                <>
+                  <div className={`h-8 w-[1px] hidden md:block ${isNavyWhite ? 'bg-blue-200' : 'bg-slate-700'}`} />
+                  <button
+                    id="btn-header-settings"
+                    onClick={onOpenSettings}
+                    className={`hidden md:flex flex-col items-center justify-center px-2.5 py-1 rounded-xl transition-all cursor-pointer ${
+                      isNavyWhite 
+                        ? 'hover:bg-blue-100/70 text-blue-900' 
+                        : 'hover:bg-slate-800 text-blue-300'
+                    }`}
+                    title="Open Application Settings & Reset"
+                  >
+                    <div className="flex items-center gap-1 font-bold text-xs">
+                      <Settings className="w-3.5 h-3.5 text-blue-500" />
+                      <span>Settings</span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 uppercase mt-0.5">Configure</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

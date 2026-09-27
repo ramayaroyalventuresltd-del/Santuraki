@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Question, ExamSession, User } from '../types';
 import { voiceReader } from '../utils/speech';
 import { VoiceReaderBar } from './VoiceReaderBar';
-import { saveExamSession } from '../utils/userStore';
+import { saveExamSession, getExamPreferences } from '../utils/userStore';
 import { recordStudyQuestions } from '../utils/studyGoalStore';
 import { 
   Clock, 
@@ -109,6 +109,13 @@ export const ExamEngine: React.FC<ExamEngineProps> = ({
       ...prev,
       [currentIdx]: optionIndex,
     }));
+
+    const prefs = getExamPreferences();
+    if (prefs.autoAdvanceOnSelect && currentIdx < questions.length - 1) {
+      setTimeout(() => {
+        setCurrentIdx((idx) => (idx < questions.length - 1 ? idx + 1 : idx));
+      }, 250);
+    }
   };
 
   // Clear answer

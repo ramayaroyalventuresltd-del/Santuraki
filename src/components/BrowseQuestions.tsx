@@ -10,7 +10,6 @@ import {
   EyeOff, 
   Volume2, 
   CheckCircle2, 
-  Filter, 
   BookOpen
 } from 'lucide-react';
 
@@ -64,9 +63,13 @@ export const BrowseQuestions: React.FC = () => {
           isNavyWhite ? 'border-blue-200' : 'border-slate-800'
         }`}>
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
+            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider mb-2 ${
+              isNavyWhite 
+                ? 'bg-blue-100 text-blue-900 border border-blue-200' 
+                : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+            }`}>
               <HelpCircle className="w-3.5 h-3.5" />
-              Verified Repository Database
+              Verified FCTA Question Repository
             </div>
             <h1 className={`text-2xl sm:text-3xl font-extrabold ${isNavyWhite ? 'text-[#07152b]' : 'text-white'}`}>
               Explore {questionBank.getTotalQuestionsCount().toLocaleString()} Examination Questions
@@ -77,18 +80,28 @@ export const BrowseQuestions: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold text-emerald-400 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
+            <span className={`text-xs font-mono font-bold px-3 py-1.5 rounded-xl border ${
+              isNavyWhite 
+                ? 'bg-white text-blue-900 border-blue-200 shadow-xs' 
+                : 'bg-slate-800 text-emerald-400 border-slate-700'
+            }`}>
               Showing {filteredQuestions.length} Questions
             </span>
           </div>
         </div>
 
         {/* Filter Controls Bar */}
-        <div className="p-5 rounded-2xl bg-slate-800/90 border border-slate-700 space-y-4 shadow-lg">
+        <div className={`p-5 rounded-2xl border space-y-4 shadow-lg transition-colors ${
+          isNavyWhite 
+            ? 'bg-white border-blue-100 shadow-blue-950/5' 
+            : 'bg-slate-800/90 border-slate-700'
+        }`}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {/* Category Domain */}
             <div>
-              <label htmlFor="browse-category" className="block text-xs font-semibold text-slate-400 uppercase mb-1">
+              <label htmlFor="browse-category" className={`block text-xs font-semibold uppercase mb-1 ${
+                isNavyWhite ? 'text-slate-500' : 'text-slate-400'
+              }`}>
                 Domain / Cadre:
               </label>
               <select
@@ -98,7 +111,11 @@ export const BrowseQuestions: React.FC = () => {
                   setSelectedCategory(e.target.value);
                   setSelectedChapter('all');
                 }}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+                className={`w-full px-3 py-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-500 ${
+                  isNavyWhite 
+                    ? 'bg-slate-50 border-blue-200 text-slate-800' 
+                    : 'bg-slate-900 border-slate-700 text-white'
+                }`}
               >
                 <optgroup label="Regulatory Core (200 Qs Each)">
                   <option value="psr">Public Service Rules (PSR - 200 Qs)</option>
@@ -118,14 +135,20 @@ export const BrowseQuestions: React.FC = () => {
 
             {/* Chapter Filter */}
             <div>
-              <label htmlFor="browse-chapter" className="block text-xs font-semibold text-slate-400 uppercase mb-1">
+              <label htmlFor="browse-chapter" className={`block text-xs font-semibold uppercase mb-1 ${
+                isNavyWhite ? 'text-slate-500' : 'text-slate-400'
+              }`}>
                 Chapter Filter (1-20):
               </label>
               <select
                 id="browse-chapter"
                 value={selectedChapter}
                 onChange={(e) => setSelectedChapter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+                className={`w-full px-3 py-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-500 ${
+                  isNavyWhite 
+                    ? 'bg-slate-50 border-blue-200 text-slate-800' 
+                    : 'bg-slate-900 border-slate-700 text-white'
+                }`}
               >
                 <option value="all">All 20 Chapters (200 Qs)</option>
                 {Array.from({ length: 20 }, (_, i) => i + 1).map((chNum) => (
@@ -138,7 +161,9 @@ export const BrowseQuestions: React.FC = () => {
 
             {/* Keyword Search */}
             <div className="sm:col-span-2">
-              <label htmlFor="browse-search" className="block text-xs font-semibold text-slate-400 uppercase mb-1">
+              <label htmlFor="browse-search" className={`block text-xs font-semibold uppercase mb-1 ${
+                isNavyWhite ? 'text-slate-500' : 'text-slate-400'
+              }`}>
                 Search Question Keywords / Rules:
               </label>
               <div className="relative">
@@ -149,7 +174,11 @@ export const BrowseQuestions: React.FC = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="e.g. query, misconduct, procurement, civil service rule..."
-                  className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className={`w-full pl-9 pr-4 py-2 text-xs rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    isNavyWhite 
+                      ? 'bg-slate-50 border-blue-200 text-slate-800 placeholder:text-slate-400' 
+                      : 'bg-slate-900 border-slate-700 text-white placeholder:text-slate-500'
+                  }`}
                 />
               </div>
             </div>
@@ -164,14 +193,22 @@ export const BrowseQuestions: React.FC = () => {
             return (
               <div
                 key={q.id}
-                className="p-5 sm:p-6 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-4 transition-all"
+                className={`p-5 sm:p-6 rounded-2xl border space-y-4 transition-all ${
+                  isNavyWhite 
+                    ? 'bg-white border-blue-100 shadow-sm text-slate-800' 
+                    : 'bg-slate-800/80 border-slate-700/80 text-white'
+                }`}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-slate-900 text-emerald-400 border border-slate-700">
+                    <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded border ${
+                      isNavyWhite 
+                        ? 'bg-blue-50 text-blue-900 border-blue-200' 
+                        : 'bg-slate-900 text-emerald-400 border-slate-700'
+                    }`}>
                       Q{idx + 1}
                     </span>
-                    <span className="text-xs font-semibold text-slate-300">
+                    <span className={`text-xs font-semibold ${isNavyWhite ? 'text-slate-600' : 'text-slate-300'}`}>
                       {q.categoryLabel} • Chapter {q.chapterNumber}: {q.chapterTitle}
                     </span>
                   </div>
@@ -180,19 +217,25 @@ export const BrowseQuestions: React.FC = () => {
                     {/* Read Out Button */}
                     <button
                       onClick={() => handleSpeak(q.questionText, q.options)}
-                      className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-700 text-slate-300 text-xs flex items-center gap-1 border border-slate-700"
+                      className={`px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 border transition-colors cursor-pointer ${
+                        isNavyWhite 
+                          ? 'bg-slate-50 hover:bg-blue-50 text-blue-900 border-blue-200' 
+                          : 'bg-slate-900 hover:bg-slate-700 text-slate-300 border-slate-700'
+                      }`}
                       title="Read question out loud"
                     >
-                      <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <Volume2 className="w-3.5 h-3.5 text-blue-600 dark:text-emerald-400" />
                       <span className="hidden sm:inline">Read</span>
                     </button>
 
                     {/* Reveal Answer Button */}
                     <button
                       onClick={() => toggleReveal(q.id)}
-                      className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                         isRevealed
-                          ? 'bg-emerald-600 text-white'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : isNavyWhite
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white'
                           : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
                       }`}
                     >
@@ -211,7 +254,7 @@ export const BrowseQuestions: React.FC = () => {
                   </div>
                 </div>
 
-                <p className="text-sm sm:text-base font-semibold text-white">
+                <p className={`text-sm sm:text-base font-semibold ${isNavyWhite ? 'text-slate-900' : 'text-white'}`}>
                   {q.questionText}
                 </p>
 
@@ -224,20 +267,26 @@ export const BrowseQuestions: React.FC = () => {
                     return (
                       <div
                         key={optIdx}
-                        className={`p-3 rounded-xl border flex items-center justify-between ${
+                        className={`p-3 rounded-xl border flex items-center justify-between transition-colors ${
                           isRevealed && isCorrect
-                            ? 'bg-emerald-950/60 border-emerald-500 text-emerald-200 font-semibold'
+                            ? isNavyWhite
+                              ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-semibold'
+                              : 'bg-emerald-950/60 border-emerald-500 text-emerald-200 font-semibold'
+                            : isNavyWhite
+                            ? 'bg-slate-50/80 border-slate-200 text-slate-700'
                             : 'bg-slate-900/60 border-slate-700/60 text-slate-300'
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
-                          <span className="w-6 h-6 rounded-full border border-current flex items-center justify-center font-bold text-xs flex-shrink-0">
+                          <span className={`w-6 h-6 rounded-full border border-current flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+                            isRevealed && isCorrect ? 'bg-emerald-600 text-white border-emerald-600' : ''
+                          }`}>
                             {letter}
                           </span>
                           <span>{opt}</span>
                         </div>
                         {isRevealed && isCorrect && (
-                          <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-400 bg-emerald-900/80 px-2 py-0.5 rounded">
+                          <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/80 px-2 py-0.5 rounded">
                             Correct
                           </span>
                         )}
@@ -248,18 +297,28 @@ export const BrowseQuestions: React.FC = () => {
 
                 {/* Explanation (if revealed) */}
                 {isRevealed && (
-                  <div className="p-4 rounded-xl bg-slate-900 border border-slate-700/80 text-xs space-y-1">
+                  <div className={`p-4 rounded-xl border text-xs space-y-1.5 transition-colors ${
+                    isNavyWhite 
+                      ? 'bg-blue-50/70 border-blue-200 text-slate-800' 
+                      : 'bg-slate-900 border-slate-700/80 text-slate-300'
+                  }`}>
                     <div className="flex items-center justify-between">
-                      <strong className="text-emerald-400 font-semibold flex items-center gap-1">
-                        <CheckCircle2 className="w-4 h-4" /> Civil Service Explanation:
+                      <strong className={`font-semibold flex items-center gap-1.5 ${
+                        isNavyWhite ? 'text-blue-900' : 'text-emerald-400'
+                      }`}>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Civil Service Explanation:
                       </strong>
                       {q.referenceRule && (
-                        <span className="font-mono text-[11px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">
+                        <span className={`font-mono text-[11px] px-2 py-0.5 rounded border ${
+                          isNavyWhite 
+                            ? 'bg-white text-blue-900 border-blue-200' 
+                            : 'bg-slate-800 text-slate-300 border-slate-700'
+                        }`}>
                           {q.referenceRule}
                         </span>
                       )}
                     </div>
-                    <p className="text-slate-300 leading-relaxed pt-1">
+                    <p className={`leading-relaxed pt-1 ${isNavyWhite ? 'text-slate-700' : 'text-slate-300'}`}>
                       {q.explanation}
                     </p>
                   </div>

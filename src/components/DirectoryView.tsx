@@ -37,7 +37,11 @@ export const DirectoryView: React.FC = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className={`border-b pb-6 ${isNavyWhite ? 'border-blue-200' : 'border-slate-800'}`}>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
+          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider mb-2 ${
+            isNavyWhite 
+              ? 'bg-blue-100 text-blue-900 border border-blue-200' 
+              : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+          }`}>
             <ShieldCheck className="w-3.5 h-3.5" />
             Official Administrative Structures
           </div>
@@ -55,7 +59,7 @@ export const DirectoryView: React.FC = () => {
             onClick={() => setActiveTab('sdas')}
             className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${
               activeTab === 'sdas'
-                ? 'bg-blue-700 text-white shadow-md'
+                ? 'bg-blue-600 text-white shadow-md font-bold'
                 : isNavyWhite
                 ? 'bg-white text-slate-700 hover:bg-blue-50 border border-blue-200'
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -69,7 +73,7 @@ export const DirectoryView: React.FC = () => {
             onClick={() => setActiveTab('grades')}
             className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${
               activeTab === 'grades'
-                ? 'bg-blue-700 text-white shadow-md'
+                ? 'bg-blue-600 text-white shadow-md font-bold'
                 : isNavyWhite
                 ? 'bg-white text-slate-700 hover:bg-blue-50 border border-blue-200'
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -83,7 +87,7 @@ export const DirectoryView: React.FC = () => {
             onClick={() => setActiveTab('cadres')}
             className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${
               activeTab === 'cadres'
-                ? 'bg-blue-700 text-white shadow-md'
+                ? 'bg-blue-600 text-white shadow-md font-bold'
                 : isNavyWhite
                 ? 'bg-white text-slate-700 hover:bg-blue-50 border border-blue-200'
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -98,7 +102,9 @@ export const DirectoryView: React.FC = () => {
         {activeTab === 'sdas' && (
           <div className="space-y-4">
             {/* Filter controls */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-slate-800/80 border border-slate-700">
+            <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border transition-colors ${
+              isNavyWhite ? 'bg-white border-blue-100 shadow-sm' : 'bg-slate-800/80 border-slate-700'
+            }`}>
               <div className="relative flex-1 max-w-md">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
@@ -106,7 +112,11 @@ export const DirectoryView: React.FC = () => {
                   value={sdaSearch}
                   onChange={(e) => setSdaSearch(e.target.value)}
                   placeholder="Search SDAs by name, abbreviation, or mandate..."
-                  className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className={`w-full pl-9 pr-4 py-2 text-xs rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    isNavyWhite 
+                      ? 'bg-slate-50 border-blue-200 text-slate-800 placeholder:text-slate-400' 
+                      : 'bg-slate-900 border-slate-700 text-white placeholder:text-slate-500'
+                  }`}
                 />
               </div>
 
@@ -114,7 +124,11 @@ export const DirectoryView: React.FC = () => {
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="px-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className={`px-3 py-2 text-xs rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    isNavyWhite 
+                      ? 'bg-slate-50 border-blue-200 text-slate-800 font-semibold' 
+                      : 'bg-slate-900 border-slate-700 text-white'
+                  }`}
                 >
                   <option value="all">All Categories ({FCTA_SDAS.length})</option>
                   <option value="secretariat">Mandate Secretariats</option>
@@ -131,32 +145,41 @@ export const DirectoryView: React.FC = () => {
               {filteredSdas.map((sda) => (
                 <div
                   key={sda.id}
-                  className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700 hover:border-emerald-500/50 transition-all flex flex-col justify-between"
+                  className={`p-5 rounded-2xl border transition-all flex flex-col justify-between ${
+                    isNavyWhite 
+                      ? 'bg-white border-blue-100 hover:border-blue-300 shadow-sm text-slate-800' 
+                      : 'bg-slate-800/80 border-slate-700 hover:border-emerald-500/50 text-white'
+                  }`}
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
-                        sda.category === 'secretariat' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' :
-                        sda.category === 'department' ? 'bg-blue-950 text-blue-400 border border-blue-800' :
-                        sda.category === 'area_council' ? 'bg-purple-950 text-purple-400 border border-purple-800' :
-                        'bg-amber-950 text-amber-400 border border-amber-800'
+                        sda.category === 'secretariat' 
+                          ? isNavyWhite ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                          : sda.category === 'department' 
+                          ? isNavyWhite ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'bg-blue-950 text-blue-400 border border-blue-800'
+                          : sda.category === 'area_council' 
+                          ? isNavyWhite ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-purple-950 text-purple-400 border border-purple-800'
+                          : isNavyWhite ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-amber-950 text-amber-400 border border-amber-800'
                       }`}>
                         {sda.category.replace('_', ' ')}
                       </span>
-                      <span className="text-xs font-mono font-bold text-slate-400">
+                      <span className={`text-xs font-mono font-bold ${isNavyWhite ? 'text-slate-500' : 'text-slate-400'}`}>
                         {sda.abbreviation}
                       </span>
                     </div>
 
-                    <h3 className="font-bold text-white text-sm leading-snug mb-2">
+                    <h3 className={`font-bold text-sm leading-snug mb-2 ${isNavyWhite ? 'text-slate-900' : 'text-white'}`}>
                       {sda.name}
                     </h3>
-                    <p className="text-xs text-slate-300 leading-relaxed mb-4">
+                    <p className={`text-xs leading-relaxed mb-4 ${isNavyWhite ? 'text-slate-600' : 'text-slate-300'}`}>
                       {sda.mandate}
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-700/60 text-[11px] text-slate-400 flex items-center justify-between">
+                  <div className={`pt-3 border-t text-[11px] flex items-center justify-between ${
+                    isNavyWhite ? 'border-slate-100 text-slate-500' : 'border-slate-700/60 text-slate-400'
+                  }`}>
                     <span>Office: {sda.leadOffice}</span>
                   </div>
                 </div>
@@ -167,13 +190,17 @@ export const DirectoryView: React.FC = () => {
 
         {/* Tab 2: Grade Levels (GL 07 - GL 16) */}
         {activeTab === 'grades' && (
-          <div className="bg-slate-800/90 border border-slate-700 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
+          <div className={`border rounded-2xl p-6 sm:p-8 shadow-xl space-y-6 transition-colors ${
+            isNavyWhite 
+              ? 'bg-white border-blue-100 text-slate-800' 
+              : 'bg-slate-800/90 border-slate-700 text-white'
+          }`}>
             <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Layers className="w-5 h-5 text-emerald-400" />
+              <h2 className={`text-xl font-bold flex items-center gap-2 ${isNavyWhite ? 'text-slate-900' : 'text-white'}`}>
+                <Layers className="w-5 h-5 text-blue-600 dark:text-emerald-400" />
                 Comprehensive Grade Levels Directory (GL 07 - GL 16)
               </h2>
-              <p className="text-xs text-slate-300 mt-1">
+              <p className={`text-xs mt-1 ${isNavyWhite ? 'text-slate-600' : 'text-slate-300'}`}>
                 Progression criteria, promotion intervals, cadre designations, and statutory maturity guidelines per Public Service Rules.
               </p>
             </div>
@@ -181,7 +208,9 @@ export const DirectoryView: React.FC = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-700 text-slate-400 uppercase tracking-wider font-semibold">
+                  <tr className={`border-b uppercase tracking-wider font-semibold ${
+                    isNavyWhite ? 'border-blue-100 text-slate-500' : 'border-slate-700 text-slate-400'
+                  }`}>
                     <th className="py-3.5 px-4">Level</th>
                     <th className="py-3.5 px-4">Administrative Designation</th>
                     <th className="py-3.5 px-4">Cadre Rank Category</th>
@@ -189,22 +218,28 @@ export const DirectoryView: React.FC = () => {
                     <th className="py-3.5 px-4">Operational Mandate</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className={`divide-y ${isNavyWhite ? 'divide-slate-100' : 'divide-slate-800'}`}>
                   {GRADE_LEVELS.map((gl) => (
-                    <tr key={gl.level} className="hover:bg-slate-900/60 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-bold text-emerald-400 text-sm whitespace-nowrap">
+                    <tr key={gl.level} className={`transition-colors ${
+                      isNavyWhite ? 'hover:bg-blue-50/50' : 'hover:bg-slate-900/60'
+                    }`}>
+                      <td className={`py-3.5 px-4 font-mono font-bold text-sm whitespace-nowrap ${
+                        isNavyWhite ? 'text-blue-600' : 'text-emerald-400'
+                      }`}>
                         {gl.level}
                       </td>
-                      <td className="py-3.5 px-4 font-semibold text-white whitespace-nowrap">
+                      <td className={`py-3.5 px-4 font-semibold whitespace-nowrap ${
+                        isNavyWhite ? 'text-slate-900' : 'text-white'
+                      }`}>
                         {gl.designation}
                       </td>
-                      <td className="py-3.5 px-4 text-slate-300">
+                      <td className={`py-3.5 px-4 ${isNavyWhite ? 'text-slate-600' : 'text-slate-300'}`}>
                         {gl.cadreRank}
                       </td>
-                      <td className="py-3.5 px-4 font-mono font-bold text-amber-400 whitespace-nowrap">
+                      <td className="py-3.5 px-4 font-mono font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap">
                         {gl.yearsToNextPromotion} Years
                       </td>
-                      <td className="py-3.5 px-4 text-slate-300 max-w-lg">
+                      <td className={`py-3.5 px-4 max-w-lg ${isNavyWhite ? 'text-slate-600' : 'text-slate-300'}`}>
                         {gl.responsibilities}
                       </td>
                     </tr>
@@ -221,27 +256,37 @@ export const DirectoryView: React.FC = () => {
             {FCTA_CADRES.map((c) => (
               <div
                 key={c.id}
-                className="p-5 rounded-2xl bg-slate-800/90 border border-slate-700 space-y-2 flex flex-col justify-between"
+                className={`p-5 rounded-2xl border space-y-2 flex flex-col justify-between transition-colors ${
+                  isNavyWhite 
+                    ? 'bg-white border-blue-100 shadow-sm text-slate-800 hover:border-blue-300' 
+                    : 'bg-slate-800/90 border-slate-700 text-white'
+                }`}
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-950 px-2.5 py-0.5 rounded border border-emerald-800">
+                    <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded border ${
+                      isNavyWhite 
+                        ? 'bg-blue-50 text-blue-900 border-blue-200' 
+                        : 'bg-emerald-950 text-emerald-400 border-emerald-800'
+                    }`}>
                       200 Exam Questions
                     </span>
-                    <span className="text-xs text-slate-400 font-mono">
+                    <span className={`text-xs font-mono ${isNavyWhite ? 'text-slate-500' : 'text-slate-400'}`}>
                       20 Technical Modules
                     </span>
                   </div>
-                  <h3 className="text-sm font-bold text-white">
+                  <h3 className={`text-sm font-bold ${isNavyWhite ? 'text-slate-900' : 'text-white'}`}>
                     {c.name}
                   </h3>
-                  <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                  <p className={`text-xs mt-1 leading-relaxed ${isNavyWhite ? 'text-slate-600' : 'text-slate-300'}`}>
                     {c.description}
                   </p>
                 </div>
 
-                <div className="pt-3 border-t border-slate-700/60 text-xs text-slate-400">
-                  <span className="font-semibold text-slate-300">Target Grade Levels:</span> GL 07 to GL 16
+                <div className={`pt-3 border-t text-xs ${
+                  isNavyWhite ? 'border-slate-100 text-slate-500' : 'border-slate-700/60 text-slate-400'
+                }`}>
+                  <span className={`font-semibold ${isNavyWhite ? 'text-slate-700' : 'text-slate-300'}`}>Target Grade Levels:</span> GL 07 to GL 16
                 </div>
               </div>
             ))}

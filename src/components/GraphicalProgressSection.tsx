@@ -35,6 +35,7 @@ import {
   ShieldCheck,
   AlertCircle
 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 interface GraphicalProgressSectionProps {
   user: User;
@@ -105,6 +106,7 @@ export const GraphicalProgressSection: React.FC<GraphicalProgressSectionProps> =
   onStartPracticeModule,
   onNavigate,
 }) => {
+  const { isNavyWhite } = useTheme();
   const [activeChartTab, setActiveChartTab] = useState<'comparison' | 'trajectory' | 'radar'>('comparison');
   const [activeModuleFilter, setActiveModuleFilter] = useState<'all' | 'psr' | 'fr' | 'ppa' | 'fct_gk'>('all');
 
@@ -348,48 +350,65 @@ export const GraphicalProgressSection: React.FC<GraphicalProgressSectionProps> =
   };
 
   return (
-    <div id="graphical-progress-analytics" className="bg-slate-800/90 border-2 border-emerald-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-8">
+    <div 
+      id="graphical-progress-analytics" 
+      className={`border rounded-3xl p-6 sm:p-8 shadow-2xl space-y-8 transition-colors ${
+        isNavyWhite 
+          ? 'bg-white border-blue-100 text-slate-800 shadow-blue-950/5' 
+          : 'bg-slate-800/90 border-slate-700 text-slate-100'
+      }`}
+    >
       {/* Header Banner */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-700/80 pb-6">
+      <div className={`flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b pb-6 ${
+        isNavyWhite ? 'border-blue-100' : 'border-slate-700/80'
+      }`}>
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5">
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+            <span className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full border flex items-center gap-1.5 ${
+              isNavyWhite 
+                ? 'bg-blue-100 text-blue-900 border-blue-200' 
+                : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+            }`}>
+              <TrendingUp className="w-3.5 h-3.5 text-blue-600 dark:text-emerald-400" />
               Recharts Performance Analytics
             </span>
-            <span className="text-xs text-slate-400 font-mono hidden sm:inline">
+            <span className={`text-xs font-mono hidden sm:inline ${isNavyWhite ? 'text-slate-500' : 'text-slate-400'}`}>
               FCTA Promotion Readiness Tracking
             </span>
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-emerald-400" />
+          <h2 className={`text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2 ${
+            isNavyWhite ? 'text-[#07152b]' : 'text-white'
+          }`}>
+            <BarChart3 className="w-6 h-6 text-blue-600 dark:text-emerald-400" />
             Module Completion & Score History
           </h2>
-          <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
+          <p className={`text-xs sm:text-sm mt-1 max-w-2xl ${isNavyWhite ? 'text-slate-600' : 'text-slate-300'}`}>
             Real-time visual tracking of your completion rates and average scores across the four statutory civil service promotion modules: <strong>Public Service Rules (PSR)</strong>, <strong>Financial Regulations (FR)</strong>, <strong>Public Procurement Act (PPA)</strong>, and <strong>FCT General Knowledge</strong>.
           </p>
         </div>
 
         {/* Aggregate KPI Badges */}
-        <div className="flex flex-wrap items-center gap-3 bg-slate-900/90 border border-slate-700/90 p-3.5 rounded-2xl shadow-inner">
-          <div className="px-3 border-r border-slate-800 text-center">
-            <span className="text-xs text-slate-400 block font-medium">Syllabus Completion</span>
-            <div className="text-lg sm:text-xl font-black text-sky-400 font-mono mt-0.5">
+        <div className={`flex flex-wrap items-center gap-3 border p-3.5 rounded-2xl shadow-inner ${
+          isNavyWhite ? 'bg-blue-50/80 border-blue-200' : 'bg-slate-900/90 border-slate-700/90'
+        }`}>
+          <div className={`px-3 border-r text-center ${isNavyWhite ? 'border-blue-200' : 'border-slate-800'}`}>
+            <span className={`text-xs block font-medium ${isNavyWhite ? 'text-slate-600' : 'text-slate-400'}`}>Syllabus Completion</span>
+            <div className="text-lg sm:text-xl font-black text-blue-600 dark:text-sky-400 font-mono mt-0.5">
               {overallStats.overallCompletionRate}%
             </div>
           </div>
 
-          <div className="px-3 border-r border-slate-800 text-center">
-            <span className="text-xs text-slate-400 block font-medium">Average Score</span>
-            <div className="text-lg sm:text-xl font-black text-emerald-400 font-mono mt-0.5">
+          <div className={`px-3 border-r text-center ${isNavyWhite ? 'border-blue-200' : 'border-slate-800'}`}>
+            <span className={`text-xs block font-medium ${isNavyWhite ? 'text-slate-600' : 'text-slate-400'}`}>Average Score</span>
+            <div className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
               {overallStats.overallAvgScore}%
             </div>
           </div>
 
           <div className="px-3 text-center">
-            <span className="text-xs text-slate-400 block font-medium">Tests Evaluated</span>
-            <div className="text-lg sm:text-xl font-black text-white font-mono mt-0.5">
+            <span className={`text-xs block font-medium ${isNavyWhite ? 'text-slate-600' : 'text-slate-400'}`}>Tests Evaluated</span>
+            <div className={`text-lg sm:text-xl font-black font-mono mt-0.5 ${isNavyWhite ? 'text-blue-950' : 'text-white'}`}>
               {overallStats.testsCount}
             </div>
           </div>
@@ -399,14 +418,18 @@ export const GraphicalProgressSection: React.FC<GraphicalProgressSectionProps> =
       {/* Interactive Chart Control Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         {/* Visualizer Mode Tabs */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-900 border border-slate-700/80 rounded-2xl">
+        <div className={`flex items-center gap-1.5 p-1 border rounded-2xl ${
+          isNavyWhite ? 'bg-blue-50/80 border-blue-200' : 'bg-slate-900 border-slate-700/80'
+        }`}>
           <button
             id="btn-chart-tab-comparison"
             type="button"
             onClick={() => setActiveChartTab('comparison')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeChartTab === 'comparison'
-                ? 'bg-emerald-600 text-white shadow-md'
+                ? 'bg-blue-600 text-white shadow-md'
+                : isNavyWhite
+                ? 'text-slate-600 hover:text-blue-900 hover:bg-white'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
           >
@@ -420,7 +443,9 @@ export const GraphicalProgressSection: React.FC<GraphicalProgressSectionProps> =
             onClick={() => setActiveChartTab('trajectory')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeChartTab === 'trajectory'
-                ? 'bg-emerald-600 text-white shadow-md'
+                ? 'bg-blue-600 text-white shadow-md'
+                : isNavyWhite
+                ? 'text-slate-600 hover:text-blue-900 hover:bg-white'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
           >
@@ -434,7 +459,9 @@ export const GraphicalProgressSection: React.FC<GraphicalProgressSectionProps> =
             onClick={() => setActiveChartTab('radar')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeChartTab === 'radar'
-                ? 'bg-emerald-600 text-white shadow-md'
+                ? 'bg-blue-600 text-white shadow-md'
+                : isNavyWhite
+                ? 'text-slate-600 hover:text-blue-900 hover:bg-white'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
           >
@@ -460,7 +487,11 @@ export const GraphicalProgressSection: React.FC<GraphicalProgressSectionProps> =
       </div>
 
       {/* PRIMARY GRAPHICAL DISPLAY (RECHARTS) */}
-      <div className="bg-slate-900/90 border border-slate-700/90 rounded-2xl p-4 sm:p-6 shadow-xl relative min-h-[360px] flex flex-col justify-center">
+      <div className={`rounded-2xl p-4 sm:p-6 shadow-xl relative min-h-[360px] flex flex-col justify-center border transition-colors ${
+        isNavyWhite 
+          ? 'bg-slate-50/70 border-blue-100 text-slate-800' 
+          : 'bg-slate-900/90 border-slate-700/90 text-white'
+      }`}>
         
         {/* TAB 1: Comparative Grouped Bar Chart */}
         {activeChartTab === 'comparison' && (
@@ -713,11 +744,15 @@ export const GraphicalProgressSection: React.FC<GraphicalProgressSectionProps> =
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs">
+          <div className={`flex items-center gap-1.5 p-1 rounded-xl border text-xs ${
+            isNavyWhite ? 'bg-blue-50/80 border-blue-200' : 'bg-slate-900 border-slate-800'
+          }`}>
             <button
               onClick={() => setActiveModuleFilter('all')}
               className={`px-2.5 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
-                activeModuleFilter === 'all' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                activeModuleFilter === 'all'
+                  ? 'bg-blue-600 text-white'
+                  : isNavyWhite ? 'text-slate-600 hover:text-blue-900' : 'text-slate-400 hover:text-white'
               }`}
             >
               All 4 Modules
@@ -725,7 +760,9 @@ export const GraphicalProgressSection: React.FC<GraphicalProgressSectionProps> =
             <button
               onClick={() => setActiveModuleFilter('psr')}
               className={`px-2.5 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
-                activeModuleFilter === 'psr' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                activeModuleFilter === 'psr'
+                  ? 'bg-blue-600 text-white'
+                  : isNavyWhite ? 'text-slate-600 hover:text-blue-900' : 'text-slate-400 hover:text-white'
               }`}
             >
               PSR
@@ -733,7 +770,9 @@ export const GraphicalProgressSection: React.FC<GraphicalProgressSectionProps> =
             <button
               onClick={() => setActiveModuleFilter('fr')}
               className={`px-2.5 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
-                activeModuleFilter === 'fr' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                activeModuleFilter === 'fr'
+                  ? 'bg-blue-600 text-white'
+                  : isNavyWhite ? 'text-slate-600 hover:text-blue-900' : 'text-slate-400 hover:text-white'
               }`}
             >
               FR
@@ -741,7 +780,9 @@ export const GraphicalProgressSection: React.FC<GraphicalProgressSectionProps> =
             <button
               onClick={() => setActiveModuleFilter('ppa')}
               className={`px-2.5 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
-                activeModuleFilter === 'ppa' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                activeModuleFilter === 'ppa'
+                  ? 'bg-blue-600 text-white'
+                  : isNavyWhite ? 'text-slate-600 hover:text-blue-900' : 'text-slate-400 hover:text-white'
               }`}
             >
               PPA
@@ -749,7 +790,9 @@ export const GraphicalProgressSection: React.FC<GraphicalProgressSectionProps> =
             <button
               onClick={() => setActiveModuleFilter('fct_gk')}
               className={`px-2.5 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
-                activeModuleFilter === 'fct_gk' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                activeModuleFilter === 'fct_gk'
+                  ? 'bg-blue-600 text-white'
+                  : isNavyWhite ? 'text-slate-600 hover:text-blue-900' : 'text-slate-400 hover:text-white'
               }`}
             >
               GK
@@ -764,17 +807,21 @@ export const GraphicalProgressSection: React.FC<GraphicalProgressSectionProps> =
             .map((mod) => {
               const statusColor =
                 mod.masteryStatus === 'Distinction'
-                  ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
+                  ? isNavyWhite ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50'
                   : mod.masteryStatus === 'Proficient'
-                  ? 'bg-teal-950/80 text-teal-300 border-teal-500/50'
+                  ? isNavyWhite ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-teal-950/80 text-teal-300 border-teal-500/50'
                   : mod.masteryStatus === 'Developing'
-                  ? 'bg-amber-950/80 text-amber-300 border-amber-500/50'
-                  : 'bg-slate-800 text-slate-400 border-slate-700';
+                  ? isNavyWhite ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-amber-950/80 text-amber-300 border-amber-500/50'
+                  : isNavyWhite ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-slate-800 text-slate-400 border-slate-700';
 
               return (
                 <div
                   key={mod.id}
-                  className="bg-slate-900/90 border border-slate-700/80 hover:border-emerald-500/60 transition-all rounded-2xl p-5 flex flex-col justify-between shadow-lg space-y-4 group"
+                  className={`border transition-all rounded-2xl p-5 flex flex-col justify-between shadow-sm space-y-4 group ${
+                    isNavyWhite 
+                      ? 'bg-white border-blue-100 hover:border-blue-300 text-slate-800' 
+                      : 'bg-slate-900/90 border-slate-700/80 hover:border-emerald-500/60 text-white'
+                  }`}
                 >
                   <div className="space-y-3">
                     {/* Header */}
@@ -783,7 +830,9 @@ export const GraphicalProgressSection: React.FC<GraphicalProgressSectionProps> =
                         <span className={`text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded border ${mod.badgeBg}`}>
                           {mod.shortName}
                         </span>
-                        <h4 className="font-extrabold text-white text-sm mt-1.5 leading-snug line-clamp-2">
+                        <h4 className={`font-extrabold text-sm mt-1.5 leading-snug line-clamp-2 ${
+                          isNavyWhite ? 'text-slate-900' : 'text-white'
+                        }`}>
                           {mod.name}
                         </h4>
                       </div>
@@ -793,7 +842,9 @@ export const GraphicalProgressSection: React.FC<GraphicalProgressSectionProps> =
                       </span>
                     </div>
 
-                    <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+                    <p className={`text-[11px] line-clamp-2 leading-relaxed ${
+                      isNavyWhite ? 'text-slate-600' : 'text-slate-400'
+                    }`}>
                       {mod.description}
                     </p>
 

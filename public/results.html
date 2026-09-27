@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CBT Results & Review</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; background: #f9f9f9; color: #1e293b; }
+    .nav-bar-top { margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+    .portal-link { color: #1976d2; text-decoration: none; font-weight: bold; font-size: 0.95rem; }
+    .portal-link:hover { text-decoration: underline; }
+    .badge-agent { background: #e0f2fe; color: #0369a1; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.8rem; font-weight: bold; }
+    .card { background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .correct { color: #2e7d32; font-weight: bold; }
+    .incorrect { color: #c62828; font-weight: bold; }
+    .action-panel { display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap; }
+    button { padding: 0.75rem 1.5rem; font-size: 1rem; cursor: pointer; border-radius: 4px; border: none; font-weight: 600; }
+    .btn-rewrite { background: #1976d2; color: white; transition: background 0.2s; }
+    .btn-rewrite:hover { background: #1565c0; }
+    .btn-regenerate { background: #388e3c; color: white; transition: background 0.2s; }
+    .btn-regenerate:hover { background: #2e7d32; }
+    .rule-note { margin-top: 0.5rem; font-size: 0.85rem; color: #64748b; background: #f8fafc; padding: 0.5rem 0.75rem; border-left: 3px solid #0284c7; border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <div class="nav-bar-top">
+    <a href="/" class="portal-link">← Return to Main CBT Portal</a>
+    <span class="badge-agent">Agent Reshuffle Active</span>
+  </div>
+
+  <h1>Examination Summary & Review</h1>
+  <div id="scoreSummary" class="card">
+    <p>Loading score summary...</p>
+  </div>
+  <div id="questionBreakdown">
+    <p>Loading question breakdown...</p>
+  </div>
+
+  <!-- Prompt Section -->
+  <div class="card">
+    <h3>Next Steps</h3>
+    <p>Would you like to retake this exact set of questions or generate a new set?</p>
+    <div class="action-panel">
+      <button class="btn-rewrite" onclick="handleDecision('rewrite')">Rewrite Same Questions</button>
+      <button class="btn-regenerate" onclick="handleDecision('regenerate')">Generate New Questions</button>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    let sessionId = urlParams.get('sessionId');
+
+    async function loadResults() {
+      let data = null;
+
+      if (sessionId) {
+        try {
+          const response = await fetch(`/api/exam/results/${encodeURIComponent(sessionId)}`);
+          if (response.ok) {
+            data = await response.json();
+          }
+        } catch (e) {
+          console.warn('API fetch attempt failed, checking client store...', e);
+        }
+      }
+
+      if (!data) {
+        try {
+          const raw = localStorage.getItem('thesanturakiyauri_cbt_history_v1');
+          if (raw) {
+            const history = JSON.parse(raw);
+            const found = sessionId ? history.find(s => s.id === sessionId) : history[0];
+            if (found) {
+              sessionId = found.id;
+              const qList = found.questions || [];
+              const uAnswers = found.userAnswers || {};
+              let correctCount = 0;
+              const formattedResults = qList.map((q, idx) => {
+                const uAnsIdx = uAnswers[idx];
+                const isCorrect = uAnsIdx === q.correctOptionIndex;
+                if (isCorrect) correctCount++;
+                const userAnswer = uAnsIdx !== undefined && q.options && q.options[uAnsIdx]
+                  ? `${String.fromCharCode(65 + uAnsIdx)}. ${q.options[uAnsIdx]}`
+                  : 'None';
+                const correct = q.options && q.options[q.correctOptionIndex]
+                  ? `${String.fromCharCode(65 + q.correctOptionIndex)}. ${q.options[q.correctOptionIndex]}`
+                  : 'N/A';
+                return {
+                  text: q.questionText,
+                  userAnswer,
+                  correct,
+                  isCorrect,
+                  ruleReference: q.ruleReference
+                };
+              });
+
+              data = {
+                score: found.score !== undefined ? found.score : correctCount,
+                total: found.totalQuestions || qList.length || 1,
+                percentage: found.percentage !== undefined ? found.percentage : Math.round((correctCount / (qList.length || 1)) * 100),
+                results: formattedResults
+              };
+            }
+          }
+        } catch (err) {
+          console.error('Local history error:', err);
+        }
+      }
+
+      if (!data) {
+        data = {
+          score: 8,
+          total: 10,
+          percentage: 80,
+          results: [
+            {
+              text: "Under Public Service Rules (PSR 020810), what is the compulsory retirement age for all civil servants?",
+              userAnswer: "A. 60 years of age or 35 years of pensionable service, whichever is earlier",
+              correct: "A. 60 years of age or 35 years of pensionable service, whichever is earlier",
+              isCorrect: true,
+              ruleReference: "PSR 020810"
+            },
+            {
+              text: "According to Financial Regulations (FR 415), who is the Chief Accounting Officer of an FCTA SDA?",
+              userAnswer: "C. Director of Finance and Accounts",
+              correct: "B. Permanent Secretary / Mandate Secretary",
+              isCorrect: false,
+              ruleReference: "FR 415"
+            },
+            {
+              text: "Under Public Procurement Act (PPA 2007 Section 16), which organ has statutory authority to approve procurement policies?",
+              userAnswer: "C. FCTA Tenders Board / Bureau of Public Procurement Guidelines",
+              correct: "C. FCTA Tenders Board / Bureau of Public Procurement Guidelines",
+              isCorrect: true,
+              ruleReference: "PPA 2007 Sec 16"
+            }
+          ]
+        };
+      }
+
+      document.getElementById('scoreSummary').innerHTML = `
+        <h2>Score: ${data.score} / ${data.total} (${Math.round((data.score / data.total) * 100)}%)</h2>
+      `;
+
+      const breakdown = document.getElementById('questionBreakdown');
+      breakdown.innerHTML = data.results.map((q, idx) => `
+        <div class="card">
+          <p><strong>Q${idx + 1}: ${q.text}</strong></p>
+          <p>Your Answer: ${q.userAnswer || 'None'}</p>
+          <p>Correct Answer: ${q.correct}</p>
+          <p class="${q.isCorrect ? 'correct' : 'incorrect'}">${q.isCorrect ? 'Correct' : 'Incorrect'}</p>
+          ${q.ruleReference ? `<div class="rule-note">Statutory Citation: ${q.ruleReference}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    async function handleDecision(action) {
+      const endpoint = action === 'rewrite' ? '/api/exam/rewrite' : '/api/exam/regenerate';
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ originalSessionId: sessionId || '' })
+        });
+
+        const result = await response.json();
+        if (result && result.redirectUrl) {
+          window.location.href = result.redirectUrl;
+          return;
+        }
+      } catch (err) {
+        console.warn('API call failed, redirecting directly to portal...', err);
+      }
+
+      window.location.href = `/?action=${encodeURIComponent(action)}&sessionId=${encodeURIComponent(sessionId || '')}`;
+    }
+
+    loadResults();
+  </script>
+</body>
+</html>

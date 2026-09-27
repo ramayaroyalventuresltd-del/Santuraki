@@ -233,3 +233,12 @@ export function getRecent7DaysStatus(goalData: DailyStudyGoalData): DayStreakIte
 
   return result;
 }
+
+export function resetStudyGoal(userId: string): DailyStudyGoalData {
+  const defaultData = createDefaultGoalData(userId);
+  if (typeof window !== 'undefined') {
+    const key = getStorageKey(userId);
+    localStorage.setItem(key, JSON.stringify(defaultData));
+  }
+  return defaultData;
+}

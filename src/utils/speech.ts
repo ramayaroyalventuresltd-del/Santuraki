@@ -57,6 +57,13 @@ class VoiceReaderEngine {
     this.notify();
   }
 
+  public resetSettings() {
+    this.stop();
+    this.state.rate = 1.0;
+    this.state.autoReadOnNext = false;
+    this.notify();
+  }
+
   public stop() {
     if (!this.synth) return;
     this.synth.cancel();

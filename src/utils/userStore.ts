@@ -156,3 +156,61 @@ export function getUserExamHistory(userId: string): ExamSession[] {
     return [];
   }
 }
+
+export interface ExamPreferences {
+  autoAdvanceOnSelect: boolean;
+  timerAlertFiveMinutes: boolean;
+  fontSize: 'standard' | 'large';
+}
+
+const EXAM_PREFS_KEY = 'thesanturakiyauri_cbt_exam_prefs_v1';
+
+export const DEFAULT_EXAM_PREFS: ExamPreferences = {
+  autoAdvanceOnSelect: false,
+  timerAlertFiveMinutes: true,
+  fontSize: 'standard',
+};
+
+export function getExamPreferences(): ExamPreferences {
+  if (typeof window === 'undefined') return DEFAULT_EXAM_PREFS;
+  try {
+    const raw = localStorage.getItem(EXAM_PREFS_KEY);
+    if (!raw) return DEFAULT_EXAM_PREFS;
+    return { ...DEFAULT_EXAM_PREFS, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_EXAM_PREFS;
+  }
+}
+
+export function saveExamPreferences(prefs: ExamPreferences) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(EXAM_PREFS_KEY, JSON.stringify(prefs));
+}
+
+export function resetExamHistory(userId?: string) {
+  if (typeof window === 'undefined') return;
+  if (userId) {
+    const raw = localStorage.getItem(EXAM_HISTORY_KEY);
+    if (raw) {
+      try {
+        const history: ExamSession[] = JSON.parse(raw);
+        const filtered = history.filter((h) => h.userId !== userId);
+        const initial = generateInitialDemoHistory(userId);
+        localStorage.setItem(EXAM_HISTORY_KEY, JSON.stringify([...initial, ...filtered]));
+      } catch {
+        localStorage.removeItem(EXAM_HISTORY_KEY);
+      }
+    }
+  } else {
+    localStorage.removeItem(EXAM_HISTORY_KEY);
+  }
+}
+
+export function factoryResetPortalData() {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(EXAM_HISTORY_KEY);
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(INITIAL_DEMO_USERS));
+  localStorage.removeItem(EXAM_PREFS_KEY);
+  localStorage.removeItem('thesanturakiyauri_screen_mode');
+  localStorage.removeItem('fcta_portal_theme');
+}

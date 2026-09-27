@@ -71,7 +71,7 @@ export const PostExamAdvisorAgentModal: React.FC<PostExamAdvisorAgentModalProps>
     }
 
     const greeting = `Candidate ${user.fullName} (${user.gradeLevel} • ${user.cadre}). Your examination "${session.title}" has been officially evaluated with a score of ${score} out of ${total} (${percentage} percent).`;
-    const promptText = `As your FCTA CBT Exam Advisory Agent, my mandate is to ask you: Would you like to REWRITE THE SAME QUESTIONS to master and remediate any errors, or GENERATE A FRESH SET OF NEW QUESTIONS calibrated at Level 3 Difficulty (Directorate Standard for Grade Levels 14 to 16)?`;
+    const promptText = `I am Agent Reshuffle. After submitting your test, I must ask you: Would you like to REWRITE THE TEST to remediate errors, or shall I GENERATE NEW QUESTIONS that you have NEVER answered before and MAKE THE EXAMS MORE DIFFICULT?`;
 
     setAgentChatHistory([
       {
@@ -147,10 +147,10 @@ export const PostExamAdvisorAgentModal: React.FC<PostExamAdvisorAgentModalProps>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base sm:text-lg font-extrabold text-white tracking-tight">
-                  FCTA Post-Exam Evaluation Agent
+                  Agent Reshuffle
                 </h3>
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                  AI Advisor Active
+                  Reshuffle Agent Active
                 </span>
               </div>
               <p className="text-xs text-slate-400">
