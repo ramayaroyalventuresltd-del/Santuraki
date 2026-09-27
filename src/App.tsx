@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, ExamSession, Question } from './types';
-import { getCurrentUser, setCurrentUser, getUserAnsweredQuestionIds } from './utils/userStore';
+import { getCurrentUser, setCurrentUser } from './utils/userStore';
 import { questionBank } from './data/questionBank';
 import { FCTA_CADRES } from './data/fctaData';
 import { getDifficultyTier } from './data/difficultyLevels';
@@ -103,15 +103,10 @@ function PortalRoot() {
     setCurrentView('exam');
   };
 
-  // Agent Reshuffle: Generate a fresh exam session with questions user has NEVER answered before and make exam more difficult
-  const handleGenerateNewExamSession = (session: ExamSession, requestedDifficulty?: number) => {
+  // Generate a fresh exam session calibrated at Level 3 Difficulty (Directorate Standard: GL 14 - GL 16)
+  const handleGenerateNewExamSession = (session: ExamSession, difficultyLevel: number = 3) => {
     const totalQ = session.totalQuestions || session.questions.length || 60;
-    
-    // Collect all questions user has ever answered across all previous sessions + this session
-    const answeredIdsSet = getUserAnsweredQuestionIds(currentUser?.id || 'candidate_user');
-    if (session.questions) {
-      session.questions.forEach((q) => answeredIdsSet.add(q.id));
-    }
+    const previousIds = session.questions.map((q) => q.id);
 
     // Match cadre id from user cadre title or id
     const matchedCadre = FCTA_CADRES.find(
@@ -119,41 +114,33 @@ function PortalRoot() {
     );
     const cadreId = matchedCadre ? matchedCadre.id : 'cadre_admin';
 
-    const currentDiff = session.difficultyLevel || 2;
-    const targetDiff = requestedDifficulty ?? (currentDiff < 3 ? currentDiff + 1 : 3);
-
-    // Call Agent Reshuffle generator: 100% unseen questions, higher difficulty tier
-    const reshuffleResult = questionBank.generateReshuffledExamQuestions({
+    // Fetch fresh Level 3 questions excluding the previous questions
+    const newQuestions = questionBank.generateLevel3Questions({
       category: session.category,
       cadreId,
       count: totalQ,
-      answeredQuestionIds: answeredIdsSet,
-      currentDifficulty: currentDiff,
-      targetDifficulty: targetDiff,
-      chapterNumber: session.chapterNumber,
+      excludeIds: previousIds,
     });
 
-    const diffTier = getDifficultyTier(reshuffleResult.assignedDifficulty);
-    const cleanBaseTitle = session.title
-      .replace(/\[Agent Reshuffle:.*?\]/g, '')
-      .replace(/\[Level \d.*?\]/g, '')
-      .trim();
+    const diffTier = getDifficultyTier(difficultyLevel);
+
+    const cleanBaseTitle = session.title.replace(/\[Level \d.*?\]/g, '').trim();
 
     const newSession: ExamSession = {
       id: `session_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       userId: currentUser?.id || 'candidate_user',
-      title: `${cleanBaseTitle} [Agent Reshuffle: ${diffTier.badgeLabel}]`,
+      title: `${cleanBaseTitle} [${diffTier.badgeLabel}]`,
       category: session.category,
       chapterNumber: session.chapterNumber,
-      totalQuestions: reshuffleResult.questions.length,
+      totalQuestions: newQuestions.length,
       timeLimitMinutes: session.timeLimitMinutes,
-      questions: reshuffleResult.questions,
+      questions: newQuestions,
       userAnswers: {},
       flaggedQuestions: [],
       startedAt: Date.now(),
       status: 'in_progress',
       mode: session.mode,
-      difficultyLevel: reshuffleResult.assignedDifficulty,
+      difficultyLevel,
       difficultyLabel: diffTier.badgeLabel,
     };
 

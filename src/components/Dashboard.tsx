@@ -3,7 +3,7 @@ import { User, ExamSession } from '../types';
 import { questionBank } from '../data/questionBank';
 import { FCTA_CADRES } from '../data/fctaData';
 import { PSR_CHAPTERS, FR_CHAPTERS, PPA_CHAPTERS, FCT_GK_CHAPTERS, getCadreChapters } from '../data/chaptersCatalog';
-import { getUserExamHistory, getUserAnsweredCount } from '../utils/userStore';
+import { getUserExamHistory } from '../utils/userStore';
 import { 
   GraduationCap, 
   Play, 
@@ -31,8 +31,7 @@ import {
   Monitor,
   Tablet,
   Smartphone,
-  Video,
-  Bot
+  Video
 } from 'lucide-react';
 import { useScreen } from '../context/ScreenRecognitionContext';
 import { useTheme } from '../context/ThemeContext';
@@ -158,7 +157,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // User past history
   const pastSessions = getUserExamHistory(user.id);
-  const answeredCountAll = getUserAnsweredCount(user.id);
   const totalExamsTaken = pastSessions.length;
   const avgScore = totalExamsTaken > 0 
     ? Math.round(pastSessions.reduce((acc, s) => acc + (s.percentage || 0), 0) / totalExamsTaken)
@@ -345,46 +343,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
                 <span className="text-[10px] text-slate-400 uppercase mt-0.5">8 Min Manual</span>
               </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Agent Reshuffle Readiness Strip */}
-        <div className={`p-4 sm:p-5 rounded-3xl border transition-all ${
-          isNavyWhite 
-            ? 'bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border-emerald-200 text-slate-800' 
-            : 'bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border-emerald-500/40 text-slate-200'
-        }`}>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-700 flex items-center justify-center text-white shadow-lg shrink-0">
-                <Bot className="w-5 h-5 animate-pulse" />
-              </div>
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <h4 className="font-bold text-sm text-white">Agent Reshuffle Enabled</h4>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold uppercase border border-emerald-500/30">
-                    Adaptive Test Evaluator
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400">
-                  After submitting your test, Agent Reshuffle asks if you want to rewrite or generate 100% unseen questions at escalated difficulty.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 text-xs font-mono self-start md:self-auto bg-slate-950/60 px-3.5 py-2 rounded-xl border border-slate-800">
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase">Attempted & Excluded</span>
-                <span className="font-bold text-emerald-400">{answeredCountAll} Qs</span>
-              </div>
-              <div className="h-6 w-[1px] bg-slate-800" />
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase">Fresh Unseen Bank</span>
-                <span className="font-bold text-teal-300">
-                  {Math.max(0, questionBank.getTotalQuestionsCount() - answeredCountAll).toLocaleString()} Qs
-                </span>
-              </div>
             </div>
           </div>
         </div>

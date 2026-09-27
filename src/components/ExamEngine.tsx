@@ -26,7 +26,6 @@ import {
 import { useScreen } from '../context/ScreenRecognitionContext';
 import { ScreenRecognitionBadge } from './ScreenRecognitionBadge';
 import { PostExamAdvisorAgentModal } from './PostExamAdvisorAgentModal';
-import { ReshuffleAgentModal } from './ReshuffleAgentModal';
 
 interface ExamEngineProps {
   user: User;
@@ -292,25 +291,25 @@ export const ExamEngine: React.FC<ExamEngineProps> = ({
             </div>
           </div>
 
-          {/* Agent Reshuffle Evaluation & Next Action Card */}
+          {/* FCTA CBT Advisory Agent Evaluation & Next Action Card */}
           <div 
-            id="reshuffle-agent-review-card"
+            id="advisor-agent-review-card"
             className="bg-slate-800/90 border-2 border-emerald-500/60 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4 relative overflow-hidden"
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/80 pb-4">
               <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-700 text-white border border-emerald-400/40 flex items-center justify-center shadow-lg">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white border border-emerald-400/40 flex items-center justify-center shadow-lg">
                   <Bot className="w-6 h-6 animate-pulse" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="text-base font-bold text-white tracking-tight">Agent Reshuffle</h4>
+                    <h4 className="text-base font-bold text-white tracking-tight">FCTA CBT Exam Advisory Agent</h4>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase">
                       Mandatory Next Step
                     </span>
                   </div>
                   <p className="text-xs text-slate-300">
-                    Inquiry for Candidate <strong className="text-white">{user.fullName}</strong> ({user.gradeLevel}): <strong>Would you like to rewrite the test?</strong>
+                    Inquiry for Candidate <strong className="text-white">{user.fullName}</strong> ({user.gradeLevel}): Rewrite the same questions or generate new Level 3 questions?
                   </p>
                 </div>
               </div>
@@ -320,12 +319,12 @@ export const ExamEngine: React.FC<ExamEngineProps> = ({
                 className="px-3.5 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-emerald-300 hover:text-emerald-200 text-xs font-semibold flex items-center gap-1.5 border border-slate-600 self-start sm:self-auto transition-colors cursor-pointer shadow-sm"
               >
                 <Bot className="w-4 h-4 text-emerald-400" />
-                <span>Open Agent Reshuffle (Voice & Chat)</span>
+                <span>Open Full Advisory Agent (Voice & Chat)</span>
               </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
-              {/* Option 1: Yes — Rewrite Test */}
+              {/* Option 1: Rewrite Same Questions */}
               <button
                 id="review-card-rewrite-same"
                 onClick={() => onRetake(session)}
@@ -334,7 +333,7 @@ export const ExamEngine: React.FC<ExamEngineProps> = ({
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm font-bold text-white group-hover:text-emerald-300">
                     <RotateCcw className="w-4 h-4 text-emerald-400" />
-                    <span>Yes, Rewrite the Test</span>
+                    <span>Rewrite the Same Questions</span>
                   </div>
                   <p className="text-xs text-slate-400 leading-snug">
                     Retake these exact {questions.length} questions to remediate missed items and cement statutory recall.
@@ -345,14 +344,12 @@ export const ExamEngine: React.FC<ExamEngineProps> = ({
                 </div>
               </button>
 
-              {/* Option 2: No — Generate New Questions (More Difficult & Never Answered Before) */}
+              {/* Option 2: Generate New Questions (Level 3 Difficulty) */}
               <button
-                id="review-card-generate-new-diff"
+                id="review-card-generate-new-l3"
                 onClick={() => {
                   if (onGenerateNewExam) {
-                    const currentDiff = session.difficultyLevel || 2;
-                    const nextDiff = currentDiff < 3 ? currentDiff + 1 : 3;
-                    onGenerateNewExam(session, nextDiff);
+                    onGenerateNewExam(session, 3);
                   } else {
                     onRetake(session);
                   }
@@ -362,10 +359,10 @@ export const ExamEngine: React.FC<ExamEngineProps> = ({
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm font-bold text-white group-hover:text-teal-300">
                     <Sparkles className="w-4 h-4 text-teal-400" />
-                    <span>No, Generate New Questions (More Difficult)</span>
+                    <span>Generate New Questions (Level 3)</span>
                   </div>
                   <p className="text-xs text-slate-400 leading-snug">
-                    Agent Reshuffle synthesizes questions you have <strong className="text-teal-300">never answered before</strong> at higher difficulty.
+                    Synthesize fresh questions calibrated at <strong className="text-teal-300">Level 3 Difficulty</strong> for Directorate Ranks (GL 14–16).
                   </p>
                 </div>
                 <div className="p-2 rounded-lg bg-teal-500/20 text-teal-300 group-hover:bg-teal-500/30 group-hover:translate-x-0.5 transition-all">
@@ -375,17 +372,17 @@ export const ExamEngine: React.FC<ExamEngineProps> = ({
             </div>
           </div>
 
-          {/* Interactive Agent Reshuffle Dialog */}
-          <ReshuffleAgentModal
+          {/* Interactive Agent Modal Dialog */}
+          <PostExamAdvisorAgentModal
             isOpen={showAdvisorAgent}
             onClose={() => setShowAdvisorAgent(false)}
             user={user}
             session={submittedSession || session}
-            onRewriteTest={() => {
+            onRewriteSameQuestions={() => {
               setShowAdvisorAgent(false);
               onRetake(session);
             }}
-            onGenerateNewDifficultQuestions={(diffLevel) => {
+            onGenerateNewQuestions={(diffLevel) => {
               setShowAdvisorAgent(false);
               if (onGenerateNewExam) {
                 onGenerateNewExam(session, diffLevel);

@@ -124,72 +124,9 @@ export function saveExamSession(session: ExamSession) {
       history.unshift(session);
     }
     localStorage.setItem(EXAM_HISTORY_KEY, JSON.stringify(history.slice(0, 100)));
-
-    // Track answered question IDs for this user
-    if (session.userId && session.questions && session.questions.length > 0) {
-      const answeredIds = session.questions
-        .filter((_, qIdx) => session.userAnswers && session.userAnswers[qIdx] !== undefined)
-        .map((q) => q.id);
-      
-      // If userAnswers is empty or it's a submitted session, record all session questions as attempted
-      const idsToRecord = answeredIds.length > 0 ? answeredIds : session.questions.map((q) => q.id);
-      recordUserAnsweredQuestionIds(session.userId, idsToRecord);
-    }
   } catch (e) {
     console.error('Failed to save exam session', e);
   }
-}
-
-const ANSWERED_QUESTIONS_PREFIX = 'thesanturakiyauri_cbt_answered_ids_';
-
-export function getUserAnsweredQuestionIds(userId: string): Set<string> {
-  const result = new Set<string>();
-  if (typeof window === 'undefined' || !userId) return result;
-
-  try {
-    const key = `${ANSWERED_QUESTIONS_PREFIX}${userId}`;
-    const raw = localStorage.getItem(key);
-    if (raw) {
-      const arr = JSON.parse(raw);
-      if (Array.isArray(arr)) {
-        arr.forEach((id: string) => result.add(id));
-      }
-    }
-
-    // Also parse past exam sessions in history to ensure complete tracking
-    const history = getUserExamHistory(userId);
-    history.forEach((session) => {
-      if (session.questions) {
-        session.questions.forEach((q) => {
-          if (q.id) result.add(q.id);
-        });
-      }
-    });
-  } catch (e) {
-    console.error('Failed to retrieve answered question IDs', e);
-  }
-
-  return result;
-}
-
-export function recordUserAnsweredQuestionIds(userId: string, questionIds: string[]): void {
-  if (typeof window === 'undefined' || !userId || !questionIds || questionIds.length === 0) return;
-
-  try {
-    const current = getUserAnsweredQuestionIds(userId);
-    questionIds.forEach((id) => {
-      if (id) current.add(id);
-    });
-
-    const key = `${ANSWERED_QUESTIONS_PREFIX}${userId}`;
-    localStorage.setItem(key, JSON.stringify(Array.from(current)));
-  } catch (e) {
-    console.error('Failed to record answered question IDs', e);
-  }
-}
-
-export function getUserAnsweredCount(userId: string): number {
-  return getUserAnsweredQuestionIds(userId).size;
 }
 
 export function getUserExamHistory(userId: string): ExamSession[] {
