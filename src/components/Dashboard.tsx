@@ -3,7 +3,8 @@ import { User, ExamSession } from '../types';
 import { questionBank } from '../data/questionBank';
 import { FCTA_CADRES } from '../data/fctaData';
 import { PSR_CHAPTERS, FR_CHAPTERS, PPA_CHAPTERS, FCT_GK_CHAPTERS, getCadreChapters } from '../data/chaptersCatalog';
-import { getUserExamHistory } from '../utils/userStore';
+import { DIFFICULTY_TIERS, getDifficultyForGradeLevel } from '../data/difficultyLevels';
+import { getUserExamHistory, getUserTierProgress, getUserTierUsedQuestionIds } from '../utils/userStore';
 import { 
   GraduationCap, 
   Play, 
@@ -32,7 +33,9 @@ import {
   Tablet,
   Smartphone,
   Video,
-  Settings
+  Settings,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { useScreen } from '../context/ScreenRecognitionContext';
 import { useTheme } from '../context/ThemeContext';
@@ -81,6 +84,51 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [customFctCount, setCustomFctCount] = useState<number>(20);
   const [customCadreCount, setCustomCadreCount] = useState<number>(20);
   const [customCadreId, setCustomCadreId] = useState<string>(userCadreObj.id);
+
+  // Four-Tier Civil Service Promotion Examination System (GL 03 - 16)
+  const userTier = getDifficultyForGradeLevel(user.gradeLevel);
+  const tierProgress = getUserTierProgress(user.id);
+  const [selectedDashboardTier, setSelectedDashboardTier] = useState<1 | 2 | 3 | 4>(
+    (userTier.tierNumber || 1) as 1 | 2 | 3 | 4
+  );
+  const [tierLockWarning, setTierLockWarning] = useState<string | null>(null);
+
+  // Helper to check if a tier is unlocked (Tier 1 is open; Tiers 2, 3, 4 require 60% on preceding tier)
+  const isTierUnlocked = (tierNum: number): boolean => {
+    if (tierNum === 1) return true;
+    if (tierNum === 2) return tierProgress.tier2;
+    if (tierNum === 3) return tierProgress.tier3;
+    if (tierNum === 4) return tierProgress.tier4;
+    return false;
+  };
+
+  // Launch Four-Tier Promotion Exam: Strictly 75 questions per tier and zero duplicates across 4 tiers
+  const launchTierExam = (tierNumber: 1 | 2 | 3 | 4) => {
+    setTierLockWarning(null);
+
+    if (!isTierUnlocked(tierNumber)) {
+      const prevTier = tierNumber - 1;
+      const prevBest = prevTier === 1 ? tierProgress.tier1Best : prevTier === 2 ? tierProgress.tier2Best : tierProgress.tier3Best;
+      setTierLockWarning(
+        `Tier ${tierNumber} is locked! You must score at least 60% on the Tier ${prevTier} CBT Examination to unlock Tier ${tierNumber}. Your current best on Tier ${prevTier} is ${prevBest}%.`
+      );
+      return;
+    }
+
+    const tierInfo = DIFFICULTY_TIERS.find((t) => t.tierNumber === tierNumber) || userTier;
+    // Collect all question IDs already presented across the user's 4-tier exams to ensure 0% repetition
+    const usedIdsAcrossTiers = getUserTierUsedQuestionIds(user.id);
+    const questions = questionBank.getTierExamQuestions(tierNumber, userCadreObj.id, 75, usedIdsAcrossTiers);
+
+    onStartExam({
+      title: `${tierInfo.title} (${tierInfo.gradeLevels})`,
+      category: `tier_${tierNumber}_exam`,
+      totalQuestions: 75,
+      timeLimitMinutes: 75,
+      questions,
+      mode: 'exam',
+    });
+  };
 
   // Category enabled toggles
   const [enabledCats, setEnabledCats] = useState<{
@@ -396,6 +444,265 @@ export const Dashboard: React.FC<DashboardProps> = ({
             document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
           }}
         />
+
+        {/* 🏛️ Four-Tier CBT Promotion Examination Centre (GL 03 to GL 16) */}
+        <div id="four-tier-exam-centre" className={`rounded-3xl p-6 sm:p-8 border-2 shadow-2xl space-y-6 transition-all ${
+          isNavyWhite 
+            ? 'bg-white border-blue-200 shadow-blue-900/10' 
+            : 'bg-slate-800/95 border-blue-500/40'
+        }`}>
+          {/* Section Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-5 border-slate-700/60">
+            <div>
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-blue-600 text-white flex items-center gap-1.5 shadow-sm">
+                  <Award className="w-3.5 h-3.5" /> Official 4-Tier Promotion Examination
+                </span>
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  Grade Levels 03 to 16
+                </span>
+                <span className="text-xs text-slate-400 font-mono hidden lg:inline">
+                  23 FCTA Cadres Integrated
+                </span>
+              </div>
+              <h2 className={`text-xl sm:text-2xl font-extrabold tracking-tight ${isNavyWhite ? 'text-[#07152b]' : 'text-white'}`}>
+                Four-Tier Civil Service CBT Examination Centre
+              </h2>
+              <p className={`text-xs sm:text-sm mt-1 max-w-3xl ${isNavyWhite ? 'text-slate-600' : 'text-slate-300'}`}>
+                Divided into 4 progressive statutory tiers covering from <strong className="text-blue-400">Level 3 to 16</strong>. Questions are drawn in balanced proportions from <strong className="text-emerald-400">Public Service Rules (PSR)</strong>, <strong className="text-amber-400">Financial Regulations (FR)</strong>, <strong className="text-blue-400">Public Procurement Act (PPA 2007)</strong>, <strong className="text-purple-400">FCT General Knowledge</strong>, and specialized questions from your professional cadre: <strong className="text-rose-400">{userCadreObj.name}</strong>.
+              </p>
+            </div>
+
+            {/* Candidate Active Level Badge */}
+            <div className={`p-3.5 rounded-2xl border text-center flex-shrink-0 ${
+              isNavyWhite 
+                ? 'bg-blue-50 border-blue-200 text-blue-900' 
+                : 'bg-slate-900/90 border-slate-700 text-slate-200'
+            }`}>
+              <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Your Active Profile</div>
+              <div className="text-lg font-black text-emerald-400 font-mono">{user.gradeLevel}</div>
+              <div className="text-[11px] font-semibold text-blue-400 mt-0.5">
+                {userTier.shortBadge}
+              </div>
+            </div>
+          </div>
+
+          {/* Tier Lock Warning Toast / Alert */}
+          {tierLockWarning && (
+            <div className="p-4 rounded-2xl bg-amber-500/15 border-2 border-amber-500/40 text-amber-900 dark:text-amber-200 flex items-center justify-between gap-3 text-xs sm:text-sm animate-fadeIn">
+              <div className="flex items-center gap-2.5">
+                <Lock className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                <div>{tierLockWarning}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTierLockWarning(null)}
+                className="font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          {/* 4 Tier Selection Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {DIFFICULTY_TIERS.map((tier) => {
+              const isSelected = selectedDashboardTier === tier.tierNumber;
+              const isUserTier = userTier.tierNumber === tier.tierNumber;
+              const unlocked = isTierUnlocked(tier.tierNumber);
+              const prevTierNum = tier.tierNumber - 1;
+              const prevTierBest = prevTierNum === 1 ? tierProgress.tier1Best : prevTierNum === 2 ? tierProgress.tier2Best : tierProgress.tier3Best;
+
+              const thisTierBest = tier.tierNumber === 1 ? tierProgress.tier1Best : tier.tierNumber === 2 ? tierProgress.tier2Best : tier.tierNumber === 3 ? tierProgress.tier3Best : tierProgress.tier4Best;
+
+              return (
+                <div
+                  key={tier.tierNumber}
+                  onClick={() => setSelectedDashboardTier(tier.tierNumber)}
+                  className={`relative p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                    isSelected 
+                      ? `${tier.colorScheme.border} ${tier.colorScheme.bg} shadow-lg ring-1 ring-blue-400 scale-[1.02]` 
+                      : isNavyWhite
+                      ? 'bg-slate-50/80 border-slate-200 hover:border-blue-300 hover:bg-blue-50/40 text-slate-700'
+                      : 'bg-slate-900/60 border-slate-700/80 hover:border-slate-600 hover:bg-slate-900 text-slate-300'
+                  }`}
+                >
+                  {isUserTier && (
+                    <div className="absolute -top-2.5 right-3 bg-emerald-500 text-slate-950 font-black text-[9px] uppercase px-2 py-0.5 rounded-full shadow-md">
+                      Your Cadre Level
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] font-bold uppercase font-mono px-2 py-0.5 rounded border ${tier.colorScheme.badge}`}>
+                        Tier {tier.tierNumber}
+                      </span>
+                      <span className="text-xs font-mono font-bold text-white bg-slate-800 px-2 py-0.5 rounded">
+                        {tier.gradeLevels}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
+                        unlocked 
+                          ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40' 
+                          : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30'
+                      }`}>
+                        {unlocked ? <Unlock className="w-3 h-3 text-emerald-500" /> : <Lock className="w-3 h-3 text-rose-500" />}
+                        <span>{unlocked ? 'Unlocked' : 'Locked'}</span>
+                      </span>
+
+                      <span className="text-[10px] font-mono font-bold text-blue-500">
+                        75 Qs CBT
+                      </span>
+                    </div>
+
+                    <h3 className={`font-bold text-sm sm:text-base leading-tight ${isSelected ? 'text-white' : isNavyWhite ? 'text-slate-900' : 'text-slate-100'}`}>
+                      {tier.title.replace(`Tier ${tier.tierNumber}: `, '')}
+                    </h3>
+
+                    <p className="text-[11px] text-slate-400 line-clamp-2">
+                      {tier.targetRanks}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-slate-700/40 space-y-2">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-400">Pass Mark:</span>
+                      <span className="font-bold text-amber-300">60% Required</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-400">Your Best:</span>
+                      <span className={`font-mono font-bold ${thisTierBest >= 60 ? 'text-emerald-400' : 'text-slate-300'}`}>
+                        {thisTierBest > 0 ? `${thisTierBest}%` : 'Not attempted'}
+                      </span>
+                    </div>
+
+                    {!unlocked && (
+                      <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-[10px] text-rose-600 dark:text-rose-300">
+                        Locked: Requires ≥ 60% on Tier {prevTierNum} (Current: {prevTierBest}%)
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      disabled={!unlocked}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        launchTierExam(tier.tierNumber);
+                      }}
+                      className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm ${
+                        !unlocked
+                          ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                          : isSelected
+                          ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30 cursor-pointer'
+                          : 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer'
+                      }`}
+                    >
+                      {unlocked ? (
+                        <>
+                          <Play className="w-3 h-3 fill-current" />
+                          <span>Take Tier {tier.tierNumber} CBT (75 Qs)</span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-3 h-3" />
+                          <span>Locked (Requires 60% in T{prevTierNum})</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Active Selected Tier Detailed Summary & 75-Question Launch Bar */}
+          {(() => {
+            const activeTier = DIFFICULTY_TIERS.find((t) => t.tierNumber === selectedDashboardTier) || userTier;
+            const unlocked = isTierUnlocked(activeTier.tierNumber);
+            const prevTierNum = activeTier.tierNumber - 1;
+            const prevTierBest = prevTierNum === 1 ? tierProgress.tier1Best : prevTierNum === 2 ? tierProgress.tier2Best : tierProgress.tier3Best;
+
+            return (
+              <div className={`p-5 sm:p-6 rounded-2xl border space-y-4 ${
+                isNavyWhite ? 'bg-blue-50/60 border-blue-200' : 'bg-slate-900/80 border-slate-700'
+              }`}>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-700/50 pb-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold px-2.5 py-0.5 rounded bg-blue-600 text-white uppercase">
+                        Selected: {activeTier.badgeLabel}
+                      </span>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 ${
+                        unlocked ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+                      }`}>
+                        {unlocked ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                        {unlocked ? 'Unlocked & Ready' : `Locked (Requires ≥60% in Tier ${prevTierNum})`}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+                      {activeTier.cognitiveFocus}
+                    </p>
+                  </div>
+
+                  {/* 5-Area Distribution Indicator for 75 Questions */}
+                  <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-mono">
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">PSR 19 Qs</span>
+                    <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">FR 15 Qs</span>
+                    <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">PPA 11 Qs</span>
+                    <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">FCT 11 Qs</span>
+                    <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">Cadre 19 Qs</span>
+                    <span className="px-2 py-0.5 rounded bg-white/10 text-white font-bold border border-white/20">Total = 75 Qs</span>
+                  </div>
+                </div>
+
+                {/* Lock Status Explanation or Launch Bar */}
+                {!unlocked ? (
+                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <strong className="block font-bold flex items-center gap-1.5 text-amber-300">
+                        <Lock className="w-4 h-4" /> Tier {activeTier.tierNumber} is Currently Locked
+                      </strong>
+                      <p className="text-[11px] text-amber-200/90">
+                        Per Civil Service Examination regulations, you must score at least <strong>60%</strong> on Tier {prevTierNum} to unlock this tier. 
+                        Your current best on Tier {prevTierNum} is <strong>{prevTierBest}%</strong>.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedDashboardTier(prevTierNum as any);
+                        launchTierExam(prevTierNum as any);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex-shrink-0 cursor-pointer shadow-md transition-all"
+                    >
+                      Take Tier {prevTierNum} Exam Now (75 Qs)
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                    <div className="text-xs text-slate-300">
+                      Standard CBT Format: <strong className="text-emerald-400">75 Questions</strong> • <strong className="text-blue-400">75 Minutes</strong> • <strong className="text-purple-400">Zero Question Repetition Across Tiers</strong>.
+                    </div>
+
+                    <button
+                      type="button"
+                      id={`btn-launch-tier-${activeTier.tierNumber}-75q`}
+                      onClick={() => launchTierExam(activeTier.tierNumber)}
+                      className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-extrabold shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.01]"
+                    >
+                      <Play className="w-4 h-4 fill-current" />
+                      <span>Start Official Tier {activeTier.tierNumber} CBT Exam (75 Questions)</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
 
         {/* Interactive Dual-Column Examination Workstation */}
         <div id="interactive-exam-configurator" className="bg-slate-800/90 border-2 border-emerald-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">

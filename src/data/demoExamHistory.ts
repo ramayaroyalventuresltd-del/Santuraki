@@ -1,5 +1,5 @@
 import { ExamSession, Question } from '../types';
-import { questionBank } from './questionBank';
+import { questionBank, deduplicateQuestions } from './questionBank';
 
 export function generateInitialDemoHistory(userId: string = '101010'): ExamSession[] {
   const psrPool = questionBank.getQuestionsByCategory('psr');
@@ -15,11 +15,12 @@ export function generateInitialDemoHistory(userId: string = '101010'): ExamSessi
     id: string,
     title: string,
     category: string,
-    qList: Question[],
+    rawQList: Question[],
     targetPercentage: number,
     daysAgo: number,
     timeLimitMinutes: number
   ): ExamSession => {
+    const qList = deduplicateQuestions(rawQList);
     const userAnswers: Record<number, number> = {};
     let correctCount = 0;
     const targetCorrect = Math.round((targetPercentage / 100) * qList.length);

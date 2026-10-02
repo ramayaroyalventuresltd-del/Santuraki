@@ -3,8 +3,8 @@ export interface User {
   username: string; // same 6-digit number
   fullName: string;
   sda: string; // Secretariat, Department or Agency
-  cadre: string; // One of 13 Cadres
-  gradeLevel: string; // e.g. "GL 07", "GL 08", ..., "GL 16"
+  cadre: string; // One of 23 FCTA Cadres
+  gradeLevel: string; // e.g. "GL 03" to "GL 16"
   email?: string;
   phone?: string;
   registeredAt: string;
@@ -29,8 +29,9 @@ export interface Question {
   correctOptionIndex: number; // 0, 1, 2, 3
   explanation: string;
   referenceRule?: string; // e.g., "PSR Rule 030401", "FR 105", "PPA 2007 Sec 16(1)"
-  difficultyLevel?: number; // 1, 2, or 3
-  gradeLevelCategory?: string; // "GL 07 - GL 09", "GL 10 - GL 13", "GL 14 - GL 16"
+  difficultyLevel?: number; // 1, 2, 3, or 4
+  gradeLevelCategory?: string; // "GL 03 - GL 06", "GL 07 - GL 10", "GL 12 - GL 14", "GL 15 - GL 16"
+  tierCode?: 'TIER_1' | 'TIER_2' | 'TIER_3' | 'TIER_4';
 }
 
 export interface ChapterInfo {
@@ -71,8 +72,9 @@ export interface ExamSession {
   isPassed?: boolean;
   status?: 'in_progress' | 'completed';
   mode: 'exam' | 'practice';
-  difficultyLevel?: number; // 1, 2, or 3
-  difficultyLabel?: string; // e.g. "Level 3: Directorate (GL 14 - 16)"
+  difficultyLevel?: number; // 1, 2, 3, or 4
+  difficultyLabel?: string; // e.g. "Tier 4: Directorate (GL 15 - 16)"
+  tierCode?: 'TIER_1' | 'TIER_2' | 'TIER_3' | 'TIER_4';
 }
 
 export interface FctaDepartmentAgency {
@@ -85,7 +87,7 @@ export interface FctaDepartmentAgency {
 }
 
 export interface GradeLevelInfo {
-  level: string; // "GL 07" to "GL 16"
+  level: string; // "GL 03" to "GL 16"
   designation: string;
   cadreRank: string;
   yearsToNextPromotion: number;

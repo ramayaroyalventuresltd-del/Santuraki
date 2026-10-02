@@ -17,10 +17,11 @@ import { useTheme } from '../context/ThemeContext';
 
 interface NavbarProps {
   currentUser: User | null;
-  currentView: 'dashboard' | 'exam' | 'learning' | 'browse' | 'directory';
+  currentView: 'dashboard' | 'exam' | 'learning' | 'browse' | 'directory' | 'admin';
   onNavigate: (view: 'dashboard' | 'learning' | 'browse' | 'directory') => void;
   onLogout: () => void;
   onOpenSettings?: () => void;
+  onOpenAdmin?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -29,6 +30,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigate,
   onLogout,
   onOpenSettings,
+  onOpenAdmin,
 }) => {
   const { theme, toggleTheme, isNavyWhite } = useTheme();
 
@@ -157,6 +159,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {currentUser.fullName.charAt(0).toUpperCase()}
                 </div>
 
+                {onOpenAdmin && (
+                  <button
+                    id="btn-nav-admin"
+                    onClick={onOpenAdmin}
+                    title="Super Administrator Console (sysadmin)"
+                    className="p-2 rounded-xl text-blue-200 hover:text-amber-300 hover:bg-blue-900/70 transition-colors cursor-pointer flex items-center gap-1"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-amber-400" />
+                    <span className="hidden xl:inline text-xs font-bold text-amber-300">Admin</span>
+                  </button>
+                )}
+
                 {onOpenSettings && (
                   <button
                     id="btn-nav-settings"
@@ -179,6 +193,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               </>
             ) : (
               <>
+                {onOpenAdmin && (
+                  <button
+                    onClick={onOpenAdmin}
+                    title="Super Administrator Console"
+                    className="px-3 py-1.5 rounded-xl bg-blue-950/80 hover:bg-blue-900 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Admin Console</span>
+                  </button>
+                )}
+
                 {onOpenSettings && (
                   <button
                     onClick={onOpenSettings}

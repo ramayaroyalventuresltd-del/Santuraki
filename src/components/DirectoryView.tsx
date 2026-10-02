@@ -49,7 +49,7 @@ export const DirectoryView: React.FC = () => {
             FCTA Secretariat, Department & Agency (SDA) Directory
           </h1>
           <p className={`text-xs sm:text-sm mt-1 ${isNavyWhite ? 'text-slate-600' : 'text-slate-300'}`}>
-            Complete institutional reference of all Mandate Secretariats, Common Services Departments, Agencies, Area Councils, and Public Service Grade Levels (GL 07 - GL 16).
+            Complete institutional reference of all Mandate Secretariats, Common Services Departments, Agencies, Area Councils, 23 Professional Cadres, and Public Service Grade Levels (GL 03 - GL 16 across 4 Tiers).
           </p>
         </div>
 
@@ -198,7 +198,7 @@ export const DirectoryView: React.FC = () => {
             <div>
               <h2 className={`text-xl font-bold flex items-center gap-2 ${isNavyWhite ? 'text-slate-900' : 'text-white'}`}>
                 <Layers className="w-5 h-5 text-blue-600 dark:text-emerald-400" />
-                Comprehensive Grade Levels Directory (GL 07 - GL 16)
+                Comprehensive Grade Levels Directory (GL 03 - GL 16 • 4 Tiers)
               </h2>
               <p className={`text-xs mt-1 ${isNavyWhite ? 'text-slate-600' : 'text-slate-300'}`}>
                 Progression criteria, promotion intervals, cadre designations, and statutory maturity guidelines per Public Service Rules.

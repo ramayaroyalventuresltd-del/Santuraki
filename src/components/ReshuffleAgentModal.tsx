@@ -502,7 +502,7 @@ export const ReshuffleAgentModal: React.FC<ReshuffleAgentModalProps> = ({
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
                   {DIFFICULTY_TIERS.map((tier) => {
                     const isCurrent = tier.level === currentDiff;
                     const isTarget = tier.level === escalatedDiff;

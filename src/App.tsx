@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, ExamSession, Question } from './types';
 import { getCurrentUser, setCurrentUser, saveExamPreferences, DEFAULT_EXAM_PREFS } from './utils/userStore';
-import { questionBank } from './data/questionBank';
+import { questionBank, deduplicateQuestions } from './data/questionBank';
 import { FCTA_CADRES } from './data/fctaData';
 import { getDifficultyTier } from './data/difficultyLevels';
 import { voiceReader } from './utils/speech';
@@ -62,18 +62,21 @@ function PortalRoot() {
   }) => {
     if (!currentUser) return;
 
+    // Enforce 100% duplicate elimination
+    const uniqueQuestions = deduplicateQuestions(config.questions);
+
     const newSession: ExamSession = {
       id: `session_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       userId: currentUser.id,
       title: config.title,
       category: config.category,
       chapterNumber: config.chapterNumber,
-      totalQuestions: config.questions.length,
+      totalQuestions: uniqueQuestions.length,
       timeLimitMinutes: config.timeLimitMinutes,
       startedAt: Date.now(),
       status: 'in_progress',
       mode: config.mode,
-      questions: config.questions,
+      questions: uniqueQuestions,
       userAnswers: {},
       flaggedQuestions: [],
     };

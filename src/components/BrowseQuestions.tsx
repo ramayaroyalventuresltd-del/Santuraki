@@ -17,6 +17,7 @@ export const BrowseQuestions: React.FC = () => {
   const { isNavyWhite } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState<string>('psr');
   const [selectedChapter, setSelectedChapter] = useState<number | 'all'>('all');
+  const [selectedTier, setSelectedTier] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
 
@@ -25,9 +26,10 @@ export const BrowseQuestions: React.FC = () => {
     return questionBank.getQuestionsByCategory(selectedCategory);
   }, [selectedCategory]);
 
-  // Filtered by chapter & search
+  // Filtered by tier, chapter & search
   const filteredQuestions = useMemo(() => {
     return categoryQuestions.filter((q) => {
+      const matchTier = selectedTier === 'all' || (q.difficultyLevel || 2) === selectedTier;
       const matchChapter = selectedChapter === 'all' || q.chapterNumber === selectedChapter;
       const query = searchQuery.toLowerCase().trim();
       const matchQuery = 
@@ -36,9 +38,9 @@ export const BrowseQuestions: React.FC = () => {
         q.options.some((o) => o.toLowerCase().includes(query)) ||
         q.explanation.toLowerCase().includes(query) ||
         (q.referenceRule && q.referenceRule.toLowerCase().includes(query));
-      return matchChapter && matchQuery;
+      return matchTier && matchChapter && matchQuery;
     });
-  }, [categoryQuestions, selectedChapter, searchQuery]);
+  }, [categoryQuestions, selectedTier, selectedChapter, searchQuery]);
 
   const toggleReveal = (id: string) => {
     setRevealedIds((prev) => {
@@ -96,7 +98,7 @@ export const BrowseQuestions: React.FC = () => {
             ? 'bg-white border-blue-100 shadow-blue-950/5' 
             : 'bg-slate-800/90 border-slate-700'
         }`}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             {/* Category Domain */}
             <div>
               <label htmlFor="browse-category" className={`block text-xs font-semibold uppercase mb-1 ${
@@ -130,6 +132,31 @@ export const BrowseQuestions: React.FC = () => {
                     </option>
                   ))}
                 </optgroup>
+              </select>
+            </div>
+
+            {/* Four-Tier Exam Filter */}
+            <div>
+              <label htmlFor="browse-tier" className={`block text-xs font-semibold uppercase mb-1 ${
+                isNavyWhite ? 'text-slate-500' : 'text-slate-400'
+              }`}>
+                Exam Tier:
+              </label>
+              <select
+                id="browse-tier"
+                value={selectedTier}
+                onChange={(e) => setSelectedTier(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                className={`w-full px-3 py-2 border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-500 ${
+                  isNavyWhite 
+                    ? 'bg-slate-50 border-blue-200 text-slate-800' 
+                    : 'bg-slate-900 border-slate-700 text-white'
+                }`}
+              >
+                <option value="all">All 4 Tiers (GL 03 - 16)</option>
+                <option value={1}>Tier 1: Junior (GL 03 - 06)</option>
+                <option value={2}>Tier 2: Officer & Exec (GL 07 - 10)</option>
+                <option value={3}>Tier 3: Senior / Mgt (GL 12 - 14)</option>
+                <option value={4}>Tier 4: Directorate (GL 15 - 16)</option>
               </select>
             </div>
 
@@ -208,6 +235,18 @@ export const BrowseQuestions: React.FC = () => {
                     }`}>
                       Q{idx + 1}
                     </span>
+                    {q.tierCode ? (
+                      <span className="text-[10px] font-bold uppercase font-mono px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                        {q.tierCode === 'TIER_1' ? 'Tier 1 (GL 03-06)' :
+                         q.tierCode === 'TIER_2' ? 'Tier 2 (GL 07-10)' :
+                         q.tierCode === 'TIER_3' ? 'Tier 3 (GL 12-14)' :
+                         'Tier 4 (GL 15-16)'}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold uppercase font-mono px-2 py-0.5 rounded bg-slate-700 text-slate-300">
+                        {q.gradeLevelCategory || 'GL 07 - 16'}
+                      </span>
+                    )}
                     <span className={`text-xs font-semibold ${isNavyWhite ? 'text-slate-600' : 'text-slate-300'}`}>
                       {q.categoryLabel} • Chapter {q.chapterNumber}: {q.chapterTitle}
                     </span>

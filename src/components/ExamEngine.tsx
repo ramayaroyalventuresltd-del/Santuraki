@@ -4,6 +4,7 @@ import { voiceReader } from '../utils/speech';
 import { VoiceReaderBar } from './VoiceReaderBar';
 import { saveExamSession, getExamPreferences } from '../utils/userStore';
 import { recordStudyQuestions } from '../utils/studyGoalStore';
+import { deduplicateQuestions } from '../data/questionBank';
 import { 
   Clock, 
   Flag, 
@@ -58,7 +59,9 @@ export const ExamEngine: React.FC<ExamEngineProps> = ({
   const [showSubmitModal, setShowSubmitModal] = useState<boolean>(false);
   const [reviewFilter, setReviewFilter] = useState<'all' | 'correct' | 'incorrect' | 'flagged'>('all');
 
-  const questions = session.questions;
+  const questions = useMemo(() => {
+    return deduplicateQuestions(session.questions || []);
+  }, [session.questions]);
   const currentQ = questions[currentIdx];
 
   // Auto-read question on change if autoRead is enabled
@@ -454,13 +457,25 @@ export const ExamEngine: React.FC<ExamEngineProps> = ({
                   }`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-700 text-slate-200">
                         Q{originalIndex + 1}
                       </span>
                       <span className="text-xs font-medium text-emerald-400 bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-800/40">
                         {q.categoryLabel}
                       </span>
+                      {q.tierCode ? (
+                        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                          {q.tierCode === 'TIER_1' ? 'Tier 1 (GL 03-06)' :
+                           q.tierCode === 'TIER_2' ? 'Tier 2 (GL 07-10)' :
+                           q.tierCode === 'TIER_3' ? 'Tier 3 (GL 12-14)' :
+                           'Tier 4 (GL 15-16)'}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">
+                          {q.gradeLevelCategory || 'GL 07 - 16'}
+                        </span>
+                      )}
                       <span className="text-xs text-slate-400">
                         Ch. {q.chapterNumber}: {q.chapterTitle}
                       </span>
@@ -635,10 +650,22 @@ export const ExamEngine: React.FC<ExamEngineProps> = ({
           <div>
             {/* Question Chapter/Subject Badge */}
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-700/80">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-semibold text-emerald-400 bg-emerald-950/60 px-2.5 py-1 rounded-md border border-emerald-800/40">
                   {currentQ?.categoryLabel}
                 </span>
+                {currentQ?.tierCode ? (
+                  <span className="text-[11px] font-bold font-mono px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                    {currentQ.tierCode === 'TIER_1' ? 'Tier 1 (GL 03-06)' :
+                     currentQ.tierCode === 'TIER_2' ? 'Tier 2 (GL 07-10)' :
+                     currentQ.tierCode === 'TIER_3' ? 'Tier 3 (GL 12-14)' :
+                     'Tier 4 (GL 15-16)'}
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-bold font-mono px-2 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-700">
+                    {currentQ?.gradeLevelCategory || 'GL 07 - 16'}
+                  </span>
+                )}
                 <span className="text-xs text-slate-300">
                   Chapter {currentQ?.chapterNumber}: {currentQ?.chapterTitle}
                 </span>
