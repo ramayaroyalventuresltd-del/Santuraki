@@ -129,12 +129,6 @@ export const VIDEO_MANUAL_CHAPTERS: VideoChapter[] = [
   }
 ];
 
-export function formatTimeSeconds(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-
 export function getCurrentChapter(currentSeconds: number): VideoChapter {
   const ch = VIDEO_MANUAL_CHAPTERS.find(
     (c) => currentSeconds >= c.startTimeSeconds && currentSeconds < c.endTimeSeconds

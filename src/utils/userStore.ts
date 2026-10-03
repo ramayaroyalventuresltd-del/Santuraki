@@ -399,10 +399,6 @@ export function adminDeleteUser(userId: string): boolean {
   }
 }
 
-export function adminAddUser(user: User): boolean {
-  return adminUpdateUser(user);
-}
-
 export function getAllSystemExamSessions(): ExamSession[] {
   if (typeof window === 'undefined') return [];
   try {

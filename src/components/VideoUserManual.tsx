@@ -32,10 +32,10 @@ import { useTheme } from '../context/ThemeContext';
 import { 
   VIDEO_MANUAL_CHAPTERS, 
   VIDEO_TOTAL_DURATION_SECONDS, 
-  formatTimeSeconds, 
   getCurrentChapter,
   VideoChapter
 } from '../data/videoManualData';
+import { formatTime } from '../utils/formatTime';
 import { voiceReader } from '../utils/speech';
 
 interface VideoUserManualProps {
@@ -564,7 +564,7 @@ export const VideoUserManual: React.FC<VideoUserManualProps> = ({
               {/* Progress Scrubber Timeline */}
               <div className="flex items-center gap-3">
                 <span className="text-xs font-mono text-slate-300">
-                  {formatTimeSeconds(currentTime)}
+                  {formatTime(currentTime)}
                 </span>
 
                 <div 
@@ -593,7 +593,7 @@ export const VideoUserManual: React.FC<VideoUserManualProps> = ({
                 </div>
 
                 <span className="text-xs font-mono text-slate-400">
-                  {formatTimeSeconds(VIDEO_TOTAL_DURATION_SECONDS)}
+                  {formatTime(VIDEO_TOTAL_DURATION_SECONDS)}
                 </span>
               </div>
 
@@ -894,7 +894,7 @@ export const VideoUserManual: React.FC<VideoUserManualProps> = ({
                     >
                       <div className="flex items-center justify-between text-[11px] font-bold text-blue-400">
                         <span>Chapter {ch.chapterNumber}: {ch.title}</span>
-                        <span className="font-mono text-slate-400">{formatTimeSeconds(ch.startTimeSeconds)}</span>
+                        <span className="font-mono text-slate-400">{formatTime(ch.startTimeSeconds)}</span>
                       </div>
                       <p className="text-slate-300 text-[11px] leading-relaxed">
                         {ch.narrationScript}

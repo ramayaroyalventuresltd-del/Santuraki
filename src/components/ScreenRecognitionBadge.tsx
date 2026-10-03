@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useScreen } from '../context/ScreenRecognitionContext';
 import { ScreenRecognitionModal } from './ScreenRecognitionModal';
-import { Monitor, Tablet, Smartphone, Sparkles } from 'lucide-react';
+import { getDeviceIcon, getDeviceLabel } from '../utils/deviceIcons';
 
 interface ScreenRecognitionBadgeProps {
   compact?: boolean;
@@ -11,27 +11,7 @@ export const ScreenRecognitionBadge: React.FC<ScreenRecognitionBadgeProps> = ({ 
   const [modalOpen, setModalOpen] = useState(false);
   const { deviceType, width, height, isForced } = useScreen();
 
-  const getIcon = () => {
-    switch (deviceType) {
-      case 'desktop':
-        return <Monitor className="w-3.5 h-3.5 text-emerald-400" />;
-      case 'tablet':
-        return <Tablet className="w-3.5 h-3.5 text-teal-400" />;
-      case 'mobile':
-        return <Smartphone className="w-3.5 h-3.5 text-cyan-400" />;
-    }
-  };
-
-  const getLabel = () => {
-    switch (deviceType) {
-      case 'desktop':
-        return 'Desktop';
-      case 'tablet':
-        return 'Tablet';
-      case 'mobile':
-        return 'Mobile';
-    }
-  };
+  const label = getDeviceLabel(deviceType);
 
   return (
     <>
@@ -40,7 +20,7 @@ export const ScreenRecognitionBadge: React.FC<ScreenRecognitionBadgeProps> = ({ 
         type="button"
         onClick={() => setModalOpen(true)}
         className="group px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 hover:border-emerald-500/50 shadow-sm transition-all flex items-center gap-2 text-xs font-medium cursor-pointer"
-        title={`Auto Screen Recognition: ${getLabel()} (${width} × ${height}px) - Click for Details`}
+        title={`Auto Screen Recognition: ${label} (${width} × ${height}px) - Click for Details`}
       >
         {/* Pulsing indicator dot */}
         <span className="relative flex h-2 w-2">
@@ -49,9 +29,9 @@ export const ScreenRecognitionBadge: React.FC<ScreenRecognitionBadgeProps> = ({ 
         </span>
 
         <span className="flex items-center gap-1.5">
-          {getIcon()}
+          {getDeviceIcon(deviceType, 'w-3.5 h-3.5')}
           <span className="font-bold text-white tracking-wide">
-            {getLabel()}
+            {label}
           </span>
         </span>
 

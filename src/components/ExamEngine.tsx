@@ -5,6 +5,7 @@ import { VoiceReaderBar } from './VoiceReaderBar';
 import { saveExamSession, getExamPreferences } from '../utils/userStore';
 import { recordStudyQuestions } from '../utils/studyGoalStore';
 import { deduplicateQuestions } from '../data/questionBank';
+import { formatTime } from '../utils/formatTime';
 import { 
   Clock, 
   Flag, 
@@ -97,13 +98,6 @@ export const ExamEngine: React.FC<ExamEngineProps> = ({
 
     return () => clearInterval(timer);
   }, [isSubmitted, session.timeLimitMinutes]);
-
-  // Format seconds to mm:ss
-  const formatTime = (secs: number) => {
-    const mins = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${mins.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
 
   // Option selection
   const handleSelectOption = (optionIndex: number) => {
@@ -300,6 +294,23 @@ export const ExamEngine: React.FC<ExamEngineProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Tier Unlock Notification Banner */}
+          {session.category.startsWith('tier_') && isPassed && (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/80 to-teal-950/80 border-2 border-emerald-500/60 text-emerald-200 flex items-center gap-3.5 shadow-xl animate-fadeIn">
+              <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                <Award className="w-6 h-6" />
+              </div>
+              <div>
+                <strong className="block text-sm sm:text-base font-extrabold text-white">
+                  🎉 Next Civil Service Promotion Tier Unlocked!
+                </strong>
+                <p className="text-xs text-emerald-200/90 mt-0.5">
+                  Congratulations! By scoring <strong>{percentage}%</strong> (meeting the statutory ≥ 60% requirement), you have successfully unlocked the next promotion examination tier on your dashboard.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* FCTA CBT Advisory Agent Evaluation & Next Action Card */}
           <div 

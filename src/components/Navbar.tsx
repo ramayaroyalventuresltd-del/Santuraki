@@ -10,7 +10,8 @@ import {
   Volume2,
   Sun,
   Moon,
-  Settings
+  Settings,
+  ShieldCheck
 } from 'lucide-react';
 import { ScreenRecognitionBadge } from './ScreenRecognitionBadge';
 import { useTheme } from '../context/ThemeContext';

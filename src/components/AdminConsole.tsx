@@ -4,7 +4,6 @@ import {
   getStoredUsers, 
   adminUpdateUser, 
   adminDeleteUser, 
-  adminAddUser,
   getUserTierProgress,
   adminSetTierOverride,
   getAllSystemExamSessions,
@@ -41,8 +40,10 @@ import {
   ChevronRight, 
   HelpCircle,
   Eye,
-  Sliders
+  Sliders,
+  BookOpen
 } from 'lucide-react';
+import { ContentManagement } from './ContentManagement';
 
 interface AdminConsoleProps {
   onExit: () => void;
@@ -51,7 +52,7 @@ interface AdminConsoleProps {
 
 export const AdminConsole: React.FC<AdminConsoleProps> = ({ onExit, onAdminLogout }) => {
   const { isNavyWhite } = useTheme();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'tiers' | 'exams' | 'questions' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'tiers' | 'exams' | 'questions' | 'content' | 'settings'>('overview');
 
   // Load live data
   const [users, setUsers] = useState<User[]>(() => getStoredUsers());
@@ -147,7 +148,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onExit, onAdminLogou
       registeredAt: new Date().toISOString(),
     };
 
-    const ok = adminAddUser(created);
+    const ok = adminUpdateUser(created);
     if (ok) {
       setFormSuccess(`Candidate ${created.fullName} (${created.username}) registered successfully!`);
       reloadData();
@@ -353,6 +354,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onExit, onAdminLogou
               { id: 'tiers', label: 'Tier 60% Unlock Oversight', icon: Lock },
               { id: 'exams', label: `Exam Results (${totalExams})`, icon: FileText },
               { id: 'questions', label: 'Unlimited Question Engine', icon: Sparkles },
+              { id: 'content', label: 'Content Management (CMS)', icon: BookOpen },
               { id: 'settings', label: 'Admin Security & Settings', icon: Settings },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -443,7 +445,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onExit, onAdminLogou
                 <Sliders className="w-4 h-4 text-blue-600" />
                 Administrative Command Centre
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <button
                   onClick={() => setIsAddUserModalOpen(true)}
                   className="p-4 rounded-2xl border text-left hover:scale-[1.01] transition-all cursor-pointer bg-blue-50/60 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800"
@@ -480,6 +482,19 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onExit, onAdminLogou
                   <div className="font-bold text-sm text-purple-950 dark:text-white">Unlimited Question Tester</div>
                   <div className="text-xs text-slate-500 dark:text-purple-300 mt-0.5">
                     Audit real-time dynamic question generation across all 4 tiers
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('content')}
+                  className="p-4 rounded-2xl border text-left hover:scale-[1.01] transition-all cursor-pointer bg-blue-50/60 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800"
+                >
+                  <div className="p-2.5 rounded-xl bg-blue-600 text-white w-fit mb-3">
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  <div className="font-bold text-sm text-blue-950 dark:text-white">Content Management (CMS)</div>
+                  <div className="text-xs text-slate-500 dark:text-blue-300 mt-0.5">
+                    Manage Question Bank, Announcements, Chapters & Cadres
                   </div>
                 </button>
 
@@ -1021,7 +1036,14 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onExit, onAdminLogou
         )}
 
         {/* ========================================================= */}
-        {/* TAB 6: ADMIN SECURITY & SETTINGS */}
+        {/* TAB 6: CONTENT MANAGEMENT (CMS) */}
+        {/* ========================================================= */}
+        {activeTab === 'content' && (
+          <ContentManagement onBackToAdminOverview={() => setActiveTab('overview')} />
+        )}
+
+        {/* ========================================================= */}
+        {/* TAB 7: ADMIN SECURITY & SETTINGS */}
         {/* ========================================================= */}
         {activeTab === 'settings' && (
           <div className="space-y-6">

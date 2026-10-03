@@ -14,18 +14,46 @@ import { BrowseQuestions } from './components/BrowseQuestions';
 import { DirectoryView } from './components/DirectoryView';
 import { PageSettingsBar } from './components/PageSettingsBar';
 import { SettingsModal } from './components/SettingsModal';
+import { AdminConsole } from './components/AdminConsole';
+import { AdminLoginModal } from './components/AdminLoginModal';
 import { ScreenRecognitionProvider, useScreen } from './context/ScreenRecognitionContext';
 import { ScreenRecognitionToast } from './components/ScreenRecognitionToast';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 
 function PortalRoot() {
   const [currentUser, setUser] = useState<User | null>(() => getCurrentUser());
-  const [currentView, setCurrentView] = useState<'dashboard' | 'exam' | 'learning' | 'browse' | 'directory'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'exam' | 'learning' | 'browse' | 'directory' | 'admin'>('dashboard');
   const [activeSession, setActiveSession] = useState<ExamSession | null>(null);
   const [pageFitMode, setPageFitMode] = useState<'standard' | 'full'>('standard');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const { isForced, forcedMode, setForcedMode } = useScreen();
   const { isNavyWhite, setTheme } = useTheme();
+
+  // Admin access handlers
+  const handleOpenAdmin = () => {
+    if (isAdminLoggedIn) {
+      setCurrentView('admin');
+    } else {
+      setIsAdminModalOpen(true);
+    }
+  };
+
+  const handleAdminLoginSuccess = () => {
+    setIsAdminLoggedIn(true);
+    setIsAdminModalOpen(false);
+    setCurrentView('admin');
+  };
+
+  const handleExitAdmin = () => {
+    setCurrentView('dashboard');
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdminLoggedIn(false);
+    setCurrentView('dashboard');
+  };
 
   // Keep stored user updated
   const handleLoginSuccess = (user: User) => {
@@ -189,6 +217,29 @@ function PortalRoot() {
 
   // If user is not logged in, show the comprehensive Login and Registration Portal
   if (!currentUser) {
+    if (currentView === 'admin' && isAdminLoggedIn) {
+      return (
+        <div className={isForced ? `${forcedBgClass} min-h-screen pb-6` : `min-h-screen ${bgThemeClass}`}>
+          <PageSettingsBar 
+            pageFitMode={pageFitMode} 
+            onTogglePageFit={() => setPageFitMode(m => m === 'standard' ? 'full' : 'standard')} 
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            onQuickResetSettings={handleQuickResetSettings}
+          />
+          <div className={simulationContainerClass}>
+            <AdminConsole onExit={handleExitAdmin} onAdminLogout={handleAdminLogout} />
+          </div>
+          <SettingsModal
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            pageFitMode={pageFitMode}
+            onChangePageFitMode={setPageFitMode}
+            onSettingsReset={handleQuickResetSettings}
+          />
+        </div>
+      );
+    }
+
     return (
       <div className={isForced ? `${forcedBgClass} min-h-screen pb-6` : `min-h-screen ${bgThemeClass}`}>
         <PageSettingsBar 
@@ -204,9 +255,10 @@ function PortalRoot() {
             onNavigate={() => {}}
             onLogout={() => {}}
             onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenAdmin={handleOpenAdmin}
           />
           <main className="flex-1">
-            <LoginPage onLoginSuccess={handleLoginSuccess} />
+            <LoginPage onLoginSuccess={handleLoginSuccess} onOpenAdminConsole={handleOpenAdmin} />
           </main>
           <footer className={`border-t text-xs py-6 text-center ${
             isNavyWhite 
@@ -223,6 +275,12 @@ function PortalRoot() {
             </div>
           </footer>
         </div>
+
+        <AdminLoginModal
+          isOpen={isAdminModalOpen}
+          onClose={() => setIsAdminModalOpen(false)}
+          onSuccess={handleAdminLoginSuccess}
+        />
 
         <SettingsModal
           isOpen={isSettingsOpen}
@@ -285,6 +343,7 @@ function PortalRoot() {
           onNavigate={(view) => setCurrentView(view)}
           onLogout={handleLogout}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenAdmin={handleOpenAdmin}
         />
 
         <main className="flex-1">
@@ -311,6 +370,13 @@ function PortalRoot() {
           {currentView === 'directory' && (
             <DirectoryView />
           )}
+
+          {currentView === 'admin' && isAdminLoggedIn && (
+            <AdminConsole
+              onExit={handleExitAdmin}
+              onAdminLogout={handleAdminLogout}
+            />
+          )}
         </main>
 
         <footer className={`border-t text-xs py-6 text-center ${
@@ -328,6 +394,12 @@ function PortalRoot() {
           </div>
         </footer>
       </div>
+
+      <AdminLoginModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+        onSuccess={handleAdminLoginSuccess}
+      />
 
       <SettingsModal
         isOpen={isSettingsOpen}

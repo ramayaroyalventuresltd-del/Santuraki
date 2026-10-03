@@ -1,22 +1,12 @@
 import React from 'react';
 import { useScreen } from '../context/ScreenRecognitionContext';
-import { Monitor, Tablet, Smartphone, X, Sparkles } from 'lucide-react';
+import { X } from 'lucide-react';
+import { getDeviceIcon } from '../utils/deviceIcons';
 
 export const ScreenRecognitionToast: React.FC = () => {
   const { notification, dismissNotification } = useScreen();
 
   if (!notification) return null;
-
-  const getIcon = () => {
-    switch (notification.type) {
-      case 'desktop':
-        return <Monitor className="w-5 h-5 text-emerald-400" />;
-      case 'tablet':
-        return <Tablet className="w-5 h-5 text-teal-400" />;
-      case 'mobile':
-        return <Smartphone className="w-5 h-5 text-cyan-400" />;
-    }
-  };
 
   return (
     <div 
@@ -25,7 +15,7 @@ export const ScreenRecognitionToast: React.FC = () => {
       role="alert"
     >
       <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex-shrink-0">
-        {getIcon()}
+        {getDeviceIcon(notification.type, 'w-5 h-5')}
       </div>
 
       <div className="flex-1 min-w-0">

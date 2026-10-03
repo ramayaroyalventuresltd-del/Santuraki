@@ -2304,6 +2304,17 @@ class QuestionBankRepository {
     return { tier1, tier2, tier3, tier4 };
   }
 
+  // Unified Question Sampling Helper with Deduplication
+  private samplePool(arr: Question[], n: number, chapterList?: number[]): Question[] {
+    let pool = arr;
+    if (chapterList && chapterList.length > 0) {
+      pool = arr.filter((q) => chapterList.includes(q.chapterNumber));
+    }
+    if (n <= 0) return [];
+    const shuffled = [...pool].sort(() => 0.5 - Math.random());
+    return deduplicateQuestions(shuffled).slice(0, n);
+  }
+
   public getMixedMockExamQuestions(cadreId: string, count: number = 75, tierLevel?: 1 | 2 | 3 | 4): Question[] {
     if (tierLevel) {
       return this.getTierExamQuestions(tierLevel, cadreId, count);
@@ -2325,17 +2336,12 @@ class QuestionBankRepository {
     const numFCT = Math.round(count * 0.15);
     const numCadre = count - (numPSR + numFR + numPPA + numFCT);
 
-    const sample = (arr: Question[], n: number) => {
-      const shuffled = [...arr].sort(() => 0.5 - Math.random());
-      return deduplicateQuestions(shuffled).slice(0, n);
-    };
-
     const combined: Question[] = [
-      ...sample(psrPool, numPSR),
-      ...sample(frPool, numFR),
-      ...sample(ppaPool, numPPA),
-      ...sample(fctPool, numFCT),
-      ...sample(cadrePool, numCadre),
+      ...this.samplePool(psrPool, numPSR),
+      ...this.samplePool(frPool, numFR),
+      ...this.samplePool(ppaPool, numPPA),
+      ...this.samplePool(fctPool, numFCT),
+      ...this.samplePool(cadrePool, numCadre),
     ];
 
     // Master backfill pool if any duplicates were pruned
@@ -2364,16 +2370,6 @@ class QuestionBankRepository {
       selectedChapters,
     } = params;
 
-    const sample = (arr: Question[], n: number, chapterList?: number[]) => {
-      let pool = arr;
-      if (chapterList && chapterList.length > 0) {
-        pool = arr.filter((q) => chapterList.includes(q.chapterNumber));
-      }
-      if (n <= 0) return [];
-      const shuffled = [...pool].sort(() => 0.5 - Math.random());
-      return deduplicateQuestions(shuffled).slice(0, n);
-    };
-
     const psrPool = this.getQuestionsByCategory('psr');
     const ppaPool = this.getQuestionsByCategory('ppa');
     const frPool = this.getQuestionsByCategory('fr');
@@ -2384,11 +2380,11 @@ class QuestionBankRepository {
 
     const totalTarget = psrCount + ppaCount + frCount + fctCount + cadreCount;
     const combined: Question[] = [];
-    if (psrCount > 0) combined.push(...sample(psrPool, psrCount, selectedChapters?.psr));
-    if (ppaCount > 0) combined.push(...sample(ppaPool, ppaCount, selectedChapters?.ppa));
-    if (frCount > 0) combined.push(...sample(frPool, frCount, selectedChapters?.fr));
-    if (fctCount > 0) combined.push(...sample(fctPool, fctCount, selectedChapters?.fct_gk));
-    if (cadreCount > 0) combined.push(...sample(cadrePool, cadreCount, selectedChapters?.[cadreId]));
+    if (psrCount > 0) combined.push(...this.samplePool(psrPool, psrCount, selectedChapters?.psr));
+    if (ppaCount > 0) combined.push(...this.samplePool(ppaPool, ppaCount, selectedChapters?.ppa));
+    if (frCount > 0) combined.push(...this.samplePool(frPool, frCount, selectedChapters?.fr));
+    if (fctCount > 0) combined.push(...this.samplePool(fctPool, fctCount, selectedChapters?.fct_gk));
+    if (cadreCount > 0) combined.push(...this.samplePool(cadrePool, cadreCount, selectedChapters?.[cadreId]));
 
     const allPool = this.getAllQuestions();
     const finalUnique = deduplicateQuestions(combined, allPool, totalTarget);
@@ -2455,17 +2451,12 @@ class QuestionBankRepository {
       const numFCT = Math.max(1, Math.round(count * 0.15));
       const numCadre = Math.max(0, count - (numPSR + numFR + numPPA + numFCT));
 
-      const sample = (arr: Question[], n: number) => {
-        const shuffled = [...arr].sort(() => 0.5 - Math.random());
-        return deduplicateQuestions(shuffled).slice(0, n);
-      };
-
       const combined: Question[] = [
-        ...sample(psrLevel3.length >= numPSR ? psrLevel3 : psrPool, numPSR),
-        ...sample(frLevel3.length >= numFR ? frLevel3 : frPool, numFR),
-        ...sample(ppaLevel3.length >= numPPA ? ppaLevel3 : ppaPool, numPPA),
-        ...sample(fctLevel3.length >= numFCT ? fctLevel3 : fctPool, numFCT),
-        ...sample(cadrePool, numCadre),
+        ...this.samplePool(psrLevel3.length >= numPSR ? psrLevel3 : psrPool, numPSR),
+        ...this.samplePool(frLevel3.length >= numFR ? frLevel3 : frPool, numFR),
+        ...this.samplePool(ppaLevel3.length >= numPPA ? ppaLevel3 : ppaPool, numPPA),
+        ...this.samplePool(fctLevel3.length >= numFCT ? fctLevel3 : fctPool, numFCT),
+        ...this.samplePool(cadrePool, numCadre),
       ];
 
       const allPool = this.getAllQuestions();
